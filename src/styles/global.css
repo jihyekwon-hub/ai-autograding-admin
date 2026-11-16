@@ -1393,7 +1393,7 @@ a { color: inherit; text-decoration: none; }
   .overview-screen-map { grid-template-columns: repeat(3, 1fr); }
   .overview-tabs { overflow-x: auto; }
 }
-@media (max-width: 1150px) {
+@media (max-width: 1320px) {
   .screen-spec-workspace { grid-template-columns: 180px minmax(0, 1fr); }
   .screen-spec-detail { position: static; grid-column: 2; max-height: none; }
   .screen-spec-hero { align-items: stretch; flex-direction: column; }
