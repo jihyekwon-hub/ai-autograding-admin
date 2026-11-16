@@ -840,6 +840,34 @@ a { color: inherit; text-decoration: none; }
 .dashboard-hour-bars strong, .dashboard-simple-bars strong { color: #3f5067; font-size: 7px; }
 .dashboard-correction-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 12px; padding: 12px; }
 .dashboard-correction-grid .mini-chart { min-height: 205px; }
+.dashboard-panel-link { display: block; color: inherit; text-decoration: none; }
+.dashboard-review-status-panel { transition: border-color .15s ease, box-shadow .15s ease; }
+.dashboard-review-status-panel:hover { border-color: #c8d7e9; box-shadow: 0 7px 18px rgba(20,39,68,.08); }
+.dashboard-review-progress { margin: 0 11px 12px; padding: 13px 15px; border: 1px solid #dfe6ef; border-radius: 8px; background: #f8fafc; }
+.dashboard-review-progress > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 9px; color: #48576d; font-size: var(--font-size-base); font-weight: 700; }
+.dashboard-review-progress strong { color: #263850; font-size: var(--font-size-md); }
+.dashboard-review-progress strong em { margin-left: 8px; color: #2c6daf; font-size: var(--font-size-lg); font-style: normal; }
+.dashboard-review-progress-track { height: 13px; overflow: hidden; border-radius: 9px; background: #e4eaf1; box-shadow: inset 0 1px 2px rgba(27,48,74,.08); }
+.dashboard-review-progress-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #315f94, #4b8aca); }
+.dashboard-review-progress small { display: block; margin-top: 7px; color: #7a8798; font-size: var(--font-size-xs); }
+.dashboard-review-charts { display: grid; grid-template-columns: 1.35fr 1fr; gap: 11px; padding: 0 11px 11px; }
+.dashboard-review-charts .mini-chart { min-height: 260px; padding: 12px 14px 10px; }
+.dashboard-trend-values, .dashboard-trend-labels { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.dashboard-trend-values span { display: grid; gap: 1px; font-size: var(--font-size-xs); }
+.dashboard-trend-values b { color: #356fae; font-weight: 700; }
+.dashboard-trend-values em { color: #bd6374; font-style: normal; font-weight: 700; }
+.dashboard-trend-chart svg { height: 135px; }
+.dashboard-trend-chart svg .review-line { stroke: #397dcc; }
+.dashboard-trend-chart svg .correction-line { stroke: #d47b8a; }
+.dashboard-trend-chart svg .review-point { fill: #fff; stroke: #397dcc; }
+.dashboard-trend-chart svg .correction-point { fill: #fff; stroke: #d47b8a; }
+.dashboard-trend-labels { margin-top: -7px; color: #68768a; font-size: var(--font-size-xs); }
+.dashboard-review-charts .dashboard-chart-legend { margin-top: 7px; }
+.dashboard-reviewer-bars { height: 184px; padding-top: 6px; }
+.dashboard-reviewer-bars > div > strong { display: flex; gap: 6px; font-size: var(--font-size-xs); font-weight: 700; }
+.dashboard-reviewer-bars > div > strong span { color: #356fae; }
+.dashboard-reviewer-bars > div > strong em { color: #bd6374; font-style: normal; }
+.dashboard-reviewer-bars > div > span { min-height: 126px; }
 
 /* 대시보드 typography 시범 적용 */
 .dashboard-page .dashboard-heading p { font-size: var(--font-size-sm); }
@@ -1072,10 +1100,12 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 1000px) {
   .dashboard-kpi-five, .review-status-kpis.five { grid-template-columns: repeat(2, 1fr); }
   .dashboard-correction-grid { grid-template-columns: 1fr; }
+  .dashboard-review-charts { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
   .dashboard-kpi-five, .review-status-kpis.five { grid-template-columns: 1fr; }
   .dashboard-review-summary { grid-template-columns: 1fr; }
+  .dashboard-review-progress > div:first-child { align-items: flex-start; flex-direction: column; gap: 4px; }
   .multi-select { width: 100%; }
   .range-modal-list > div { grid-template-columns: 1fr 1fr; }
   .sheet-meta { grid-template-columns: 1fr 1fr; }
