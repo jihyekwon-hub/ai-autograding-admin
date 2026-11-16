@@ -265,8 +265,8 @@ a { color: inherit; text-decoration: none; }
 .result-select.result-자동확정 { background: #edf4fb; color: #2e639f; }
 .result-select.result-검수후확정 { background: #f1f5fa; color: #56789d; }
 .result-select.result-채점센터 { background: #f4f5f7; color: #59677b; }
-.rule-toggle { display: flex; justify-content: center; }
-.rule-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.rule-toggle { position: relative; display: flex; justify-content: center; }
+.rule-toggle input { width: 1px; height: 1px; position: absolute; opacity: 0; pointer-events: none; }
 .rule-toggle span { width: 34px; height: 19px; position: relative; display: block; border-radius: 12px; background: #cbd3de; transition: .18s ease; }
 .rule-toggle span::after { content: ''; width: 15px; height: 15px; position: absolute; top: 2px; left: 2px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.22); transition: .18s ease; }
 .rule-toggle input:checked + span { background: #3f7fc6; }
