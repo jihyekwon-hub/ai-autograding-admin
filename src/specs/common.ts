@@ -1,0 +1,20 @@
+import type { ScreenMetadata, ScreenSpecification } from './types'
+
+export const screenMetadata: ScreenMetadata[] = [
+  { key: 'dashboard', order: 1, name: '대시보드', screenId: 'ADM-DASH-001', url: '/dashboard', purpose: '현재 AI 자동채점 운영상태와 당일 검수 실적을 한 화면에서 요약 조회', user: '운영관리자', crud: 'Read', relatedScreens: ['실적관리', '운영기준 설정', '검수현황'] },
+  { key: 'performance', order: 2, name: '실적관리', screenId: 'ADM-PERF-001', url: '/performance', purpose: '전체 제출 대비 AI 자동채점 적용범위와 처리 결과를 기간별 분석', user: '운영관리자', crud: 'Read / Export', relatedScreens: ['대시보드'] },
+  { key: 'standards', order: 3, name: '운영기준 설정', screenId: 'ADM-STD-001', url: '/standards', purpose: '과목·단계·진도범위별 AI Routing Rule 설정', user: '운영관리자', crud: 'Read / Create / Update / Delete', relatedScreens: ['대시보드', '이력관리'] },
+  { key: 'reviewers', order: 4, name: '검수교사 관리', screenId: 'ADM-REV-001', url: '/reviewers', purpose: '검수교사 인력정보와 복수 검수 대상 범위 관리', user: '운영관리자', crud: 'Read / Create / Update / Delete', relatedScreens: ['검수현황', '이력관리'] },
+  { key: 'review-status', order: 5, name: '검수현황', screenId: 'ADM-STAT-001', url: '/review-status', purpose: '검수교사 작업실적과 AI 판정 수정 발생현황 조회', user: '운영관리자', crud: 'Read', relatedScreens: ['대시보드', '검수교사 관리'] },
+  { key: 'history', order: 6, name: '이력관리', screenId: 'ADM-HIST-001', url: '/history', purpose: 'Admin 내부에서 발생한 운영기준과 검수교사 배정 변경 이력 조회', user: '운영관리자', crud: 'Read', relatedScreens: ['운영기준 설정', '검수교사 관리'] },
+]
+
+export const createSpec = (spec: ScreenSpecification): ScreenSpecification => spec
+
+export const defaultSpecValue = ['-']
+
+export const statusDescription = {
+  확정: '현재 프로토타입에서 동작과 데이터 정의가 확인된 항목',
+  '협의 필요': '운영 정책 또는 사용자 요구 확정이 필요한 항목',
+  '개발 확인 필요': 'API·DB·보안·외부 연계 등 기술 설계 확인이 필요한 항목',
+} as const

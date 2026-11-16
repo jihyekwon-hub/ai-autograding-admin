@@ -8,6 +8,7 @@ import {
   History,
   LayoutDashboard,
   Menu,
+  FileText,
   SlidersHorizontal,
   UserRoundCheck,
 } from 'lucide-react'
@@ -48,6 +49,17 @@ export function AdminLayout() {
               <span>{label}</span>
             </NavLink>
           ))}
+          <div className="nav-divider" />
+          <p className="nav-caption nav-caption-reference">개발 Reference</p>
+          <NavLink
+            to="/screen-spec"
+            end
+            className={({ isActive }) => `nav-item nav-item-reference ${isActive ? 'active' : ''}`}
+            onClick={() => setMenuOpen(false)}
+          >
+            <FileText size={19} />
+            <span>화면설계서</span>
+          </NavLink>
         </nav>
 
         <div className="sidebar-bottom">

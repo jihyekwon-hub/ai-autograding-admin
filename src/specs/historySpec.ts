@@ -1,0 +1,16 @@
+import { createSpec } from './common'
+
+const screenId = 'ADM-HIST-001'
+export const historySpecs = [
+  createSpec({ id: 'hist-01', screenId, number: 1, title: '기간 조회', status: '확정', selector: '.history-filter-card > label:nth-of-type(1)', purpose: '변경일 기준 이력 범위 지정', description: '시작일/종료일의 timestamp 날짜 기준 filter.', validation: ['종료일 min=시작일'] }),
+  createSpec({ id: 'hist-02', screenId, number: 2, title: '변경유형', status: '협의 필요', selector: '.history-filter-card > label:nth-of-type(3)', purpose: 'History 유형 filter', description: '전체·운영기준 변경·검수교사 배정 변경·대상 변경·시스템 변경.', sourceData: ['HistoryType'], openIssues: ['Production changeType code 체계'] }),
+  createSpec({ id: 'hist-03', screenId, number: 3, title: '작업자', status: '개발 확인 필요', selector: '.history-filter-card > label:nth-of-type(4)', purpose: '변경 수행자 filter', description: '현재 history의 worker distinct 목록.', linkedSystem: ['Admin User/Auth'], openIssues: ['계정/사번/표시명과 시스템 작업자 구분'] }),
+  createSpec({ id: 'hist-04', screenId, number: 4, title: '과목', status: '확정', selector: '.history-filter-card > label:nth-of-type(5)', purpose: '과목 관련 변경 filter', description: '전체 또는 공통 과목 단일 선택.', interactions: ['변경 시 단계=전체 초기화'] }),
+  createSpec({ id: 'hist-05', screenId, number: 5, title: '단계', status: '확정', selector: '.history-filter-card > label:nth-of-type(6)', purpose: '선택 과목의 단계 관련 변경 filter', description: '과목=전체이면 전체만, 특정 과목이면 curriculum 단계 노출.' }),
+  createSpec({ id: 'hist-06', screenId, number: 6, title: '키워드', status: '확정', selector: '.history-keyword', purpose: '변경내용·규칙명·교사명 검색', description: 'title, scope, before, after, note를 소문자 부분일치 검색.', input: ['keyword string'] }),
+  createSpec({ id: 'hist-07', screenId, number: 7, title: '조회 / 초기화', status: '확정', selector: '.history-filter-actions', purpose: 'Draft 조건 적용 또는 기본조건 복원', description: '조회 시 filters 복사, 초기화 시 2026-11-01~16 전체 조건.' }),
+  createSpec({ id: 'hist-08', screenId, number: 8, title: '운영이력 Table', status: '확정', selector: '.history-core-table', purpose: 'Admin 변경 감사이력 조회', description: '변경일시·유형·대상·변경 전·변경 후·작업자·비고. 수정/삭제 불가.', interactions: ['row click → 상세 Modal'], permissions: ['이력 조회 권한'] }),
+  createSpec({ id: 'hist-09', screenId, number: 9, title: '운영기준 변경 History', status: '확정', selector: '.history-core-table tbody tr:first-child', purpose: 'Rule 변경 전후 추적', description: '운영기준 저장 시 type=운영기준 변경, before/after Rule 조건을 기록.', sourceData: ['AdminDataContext.addHistory'], linkedScreen: ['/standards'] }),
+  createSpec({ id: 'hist-10', screenId, number: 10, title: '검수범위 변경 History', status: '확정', selector: '.history-core-table tbody tr:nth-child(2)', purpose: 'Reviewer 배정범위 변경 전후 추적', description: '검수범위 저장 시 교사, 범위 before/after, 작업자, 일시 기록.', linkedScreen: ['/reviewers'] }),
+  createSpec({ id: 'hist-11', screenId, number: 11, title: '운영 이력 상세 Modal', status: '개발 확인 필요', selector: '.history-detail-modal', purpose: '선택 History 전체 내용 조회', description: '변경유형·대상·변경내용·before/after·작업자·일시·비고를 read-only 표시.', apiRequirement: ['History detail 조회 API 또는 list payload 재사용'], exceptionHandling: ['삭제된 대상도 당시 snapshot으로 표시'], openIssues: ['이력 보존기간과 개인정보 포함 정책'] }),
+]

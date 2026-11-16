@@ -8,6 +8,7 @@ import { ReviewStatusPage } from './pages/ReviewStatusPage'
 import { ReviewerProvider } from './contexts/ReviewerProvider'
 import { HistoryPage } from './pages/HistoryPage'
 import { AdminDataProvider } from './contexts/AdminDataProvider'
+import { ScreenSpecPage } from './pages/ScreenSpecPage'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="reviewers" element={<ReviewerManagementPage />} />
           <Route path="review-status" element={<ReviewStatusPage />} />
           <Route path="history" element={<HistoryPage />} />
+          <Route path="screen-spec" element={<ScreenSpecPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
