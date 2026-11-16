@@ -1,9 +1,11 @@
-import { BarChart3, CheckCircle2, Clock3, Eye, Files, RotateCcw, Search, SquarePen, WalletCards, X } from 'lucide-react'
+import { BarChart3, CheckCircle2, Clock3, Eye, RotateCcw, Search, SquarePen, WalletCards, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useReviewers } from '../contexts/reviewerStore'
 import { curriculumStages, MONTH_START, subjects, TODAY, type Subject } from '../data/curriculum'
 import { gradingErrors, type GradingError } from '../data/errors'
 import { reviewPerformanceRecords } from '../data/reviewPerformance'
+import { createReviewedWorksheet } from '../data/worksheets'
+import { ReviewedWorksheetView } from '../components/ReviewedWorksheetView'
 
 type PeriodUnit = '일별' | '월별' | '기간별'
 const number = new Intl.NumberFormat('ko-KR')
@@ -31,7 +33,23 @@ export function ReviewStatusPage() {
     <section className="review-status-kpis five"><Kpi icon={<CheckCircle2/>} label="총 검수 장수" value={`${number.format(totalPages)}장`}/><Kpi icon={<SquarePen/>} label="총 수정 건수" value={`${number.format(totalCorrections)}건`}/><Kpi icon={<Clock3/>} label="총 업무시간" value={minutesLabel(totalMinutes)}/><Kpi icon={<BarChart3/>} label="평균 처리속도" value={`${speed.toFixed(1)}장/시간`}/><Kpi icon={<WalletCards/>} label="예상 수당" value={`₩${number.format(allowance)}`}/></section>
     <div className="review-chart-grid"><section className="review-status-panel reviewer-ranking"><Title title="검수교사별 실적"/><DualBars data={reviewerStats.map((item) => ({ label: item.reviewer.name.replace('검수교사 ', ''), first: item.pages, second: item.corrections }))}/></section><section className="review-status-panel"><Title title="검수 장수 추이"/><LineChart data={daily.map((item) => ({ label: item.label, value: item.pages }))}/></section><section className="review-status-panel"><Title title="수정 건수 추이"/><LineChart data={daily.map((item) => ({ label: item.label, value: item.corrections }))}/></section></div>
     <section className="review-status-panel correction-list-panel"><Title title="수정 내역"/><div className="review-status-table-wrap"><table className="review-status-table"><thead><tr><th>일시</th><th>담당 검수교사</th><th>과목</th><th>단계</th><th>진도번호</th><th>문항번호</th><th>검수화면</th></tr></thead><tbody>{corrections.map((item) => <tr key={item.id}><td>{item.timestamp}</td><td>{reviewers.find((reviewer) => reviewer.id === item.reviewerId)?.name}</td><td>{item.subject}</td><td>{item.stage}</td><td>{item.progress}</td><td>{item.question}번</td><td><button className="sheet-view-button" onClick={() => setSheet(item)}><Eye size={13}/> 화면 보기</button></td></tr>)}</tbody></table></div></section>
-    {sheet && <div className="reviewer-modal-backdrop"><div className="review-sheet-modal"><div className="reviewer-modal-title"><h2>검수 완료 화면</h2><button onClick={() => setSheet(null)}><X size={17}/></button></div><div className="sheet-meta"><span>과목<strong>{sheet.subject}</strong></span><span>단계<strong>{sheet.stage}</strong></span><span>진도번호<strong>{sheet.progress}</strong></span><span>학습지<strong>A면</strong></span></div><div className="mock-worksheet"><header><Files size={22}/><div><strong>{sheet.subject} {sheet.stage} 학습지</strong><small>진도 {sheet.progress} · 검수 완료</small></div></header><div>{Array.from({ length: 8 }, (_, index) => <article key={index}><b>{index + 1}</b><span>{index === sheet.question - 1 ? '검수 대상 문항' : '학습 문항'}</span><em className={index % 3 === 1 ? 'wrong' : ''}>{index % 3 === 1 ? '✕' : '○'}</em></article>)}</div><footer><CheckCircle2/> 최종 검수 결과: <strong>{sheet.after}</strong></footer></div><p className="sheet-readonly">검수가 완료된 화면으로 수정할 수 없습니다.</p></div></div>}
+    {sheet && (
+      <div className="reviewer-modal-backdrop" onClick={() => setSheet(null)}>
+        <div className="review-sheet-modal" role="dialog" aria-modal="true" aria-label="검수 완료 화면" onClick={(event) => event.stopPropagation()}>
+          <div className="reviewer-modal-title">
+            <div><h2>검수 완료 화면</h2><p>검수 완료 후 회원이 확인하는 학습지 화면</p></div>
+            <button type="button" aria-label="닫기" onClick={() => setSheet(null)}><X size={17}/></button>
+          </div>
+          <div className="sheet-meta">
+            <span>검수일시<strong>{sheet.timestamp}</strong></span>
+            <span>담당 검수교사<strong>{reviewers.find((reviewer) => reviewer.id === sheet.reviewerId)?.name ?? sheet.reviewerId}</strong></span>
+            <span>수정 문항<strong>{sheet.question}번 · {sheet.before} → {sheet.after}</strong></span>
+          </div>
+          <ReviewedWorksheetView worksheet={createReviewedWorksheet(sheet)}/>
+          <p className="sheet-readonly">검수가 완료된 화면으로 수정할 수 없습니다.</p>
+        </div>
+      </div>
+    )}
   </div>
 }
 function Kpi({ icon, label, value }: { icon: ReactNode; label: string; value: string }) { return <article>{icon}<span>{label}<strong>{value}</strong><small>조회 조건 기준</small></span></article> }
