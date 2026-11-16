@@ -4,8 +4,8 @@ import { useReviewers } from '../contexts/reviewerStore'
 import { curriculumStages, MONTH_START, subjects, TODAY, type Subject } from '../data/curriculum'
 import { gradingErrors, type GradingError } from '../data/errors'
 import { reviewPerformanceRecords } from '../data/reviewPerformance'
-import { createReviewedWorksheet } from '../data/worksheets'
-import { ReviewedWorksheetView } from '../components/ReviewedWorksheetView'
+import { createReviewedSheet } from '../data/worksheets'
+import { ReviewedSheetView } from '../components/ReviewedWorksheetView'
 
 type PeriodUnit = '일별' | '월별' | '기간별'
 const number = new Intl.NumberFormat('ko-KR')
@@ -27,6 +27,7 @@ export function ReviewStatusPage() {
   const dates = [...new Set(records.map((item) => item.date))]; const daily = dates.map((date) => ({ label: date.slice(5), pages: records.filter((item) => item.date === date).reduce((sum, item) => sum + item.reviewedPages, 0), corrections: records.filter((item) => item.date === date).reduce((sum, item) => sum + item.corrections, 0) }))
   const reviewerStats = filteredReviewers.map((reviewer) => ({ reviewer, pages: records.filter((item) => item.reviewerId === reviewer.id).reduce((sum, item) => sum + item.reviewedPages, 0), corrections: records.filter((item) => item.reviewerId === reviewer.id).reduce((sum, item) => sum + item.corrections, 0) }))
   const corrections = gradingErrors.filter((item) => ids.has(item.reviewerId) && item.timestamp.slice(0, 10) >= start && item.timestamp.slice(0, 10) <= end).filter((item) => !selectedSubjects.length || selectedSubjects.includes(item.subject)).filter((item) => !selectedStages.length || selectedStages.includes(item.stage))
+  const reviewedSheet = sheet ? createReviewedSheet(sheet) : null
   const reset = () => { setUnit('기간별'); setStart(MONTH_START); setEnd(TODAY); setReviewerIds([]); setSelectedSubjects([]); setSelectedStages([]) }
   return <div className="page review-status-page"><div className="review-status-heading"><div><p>검수 운영 분석</p><h1>검수현황</h1><span>검수교사별 실적과 AI 판정 수정 내역을 조회합니다.</span></div></div>
     <section className="review-filter-card"><div className="review-unit-tabs">{(['일별', '월별', '기간별'] as PeriodUnit[]).map((item) => <button className={unit === item ? 'active' : ''} key={item} onClick={() => setUnit(item)}>{item}</button>)}</div><label>시작일<input type="date" value={start} onChange={(event) => setStart(event.target.value)}/></label><label>종료일<input type="date" value={end} min={start} onChange={(event) => setEnd(event.target.value)}/></label><MultiSelect label="검수교사" options={reviewers.map((item) => ({ value: item.id, label: item.name }))} selected={reviewerIds} onChange={setReviewerIds}/><MultiSelect label="과목" options={subjects.map((item) => ({ value: item, label: item }))} selected={selectedSubjects} onChange={(values) => { setSelectedSubjects(values); setSelectedStages([]) }}/><MultiSelect label="단계" options={availableStages.map((item) => ({ value: item, label: item }))} selected={selectedStages} onChange={setSelectedStages}/><div className="review-filter-actions"><button className="search"><Search size={15}/> 조회</button><button onClick={reset}><RotateCcw size={15}/> 초기화</button></div></section>
@@ -43,9 +44,9 @@ export function ReviewStatusPage() {
           <div className="sheet-meta">
             <span>검수일시<strong>{sheet.timestamp}</strong></span>
             <span>담당 검수교사<strong>{reviewers.find((reviewer) => reviewer.id === sheet.reviewerId)?.name ?? sheet.reviewerId}</strong></span>
-            <span>수정 문항<strong>{sheet.question}번 · {sheet.before} → {sheet.after}</strong></span>
+            <span>수정 문항<strong>{reviewedSheet?.reviewedSide.toUpperCase()}면 {sheet.question}번 · {sheet.before} → {sheet.after}</strong></span>
           </div>
-          <ReviewedWorksheetView worksheet={createReviewedWorksheet(sheet)}/>
+          {reviewedSheet && <ReviewedSheetView sheet={reviewedSheet}/>}
           <p className="sheet-readonly">검수가 완료된 화면으로 수정할 수 없습니다.</p>
         </div>
       </div>

@@ -2,9 +2,11 @@ import type { Subject } from './curriculum'
 import type { GradingError } from './errors'
 
 // 검수 완료 후 회원에게 보여지는 학습지 결과 화면용 mock 데이터.
-// 수정 내역(GradingError)마다 항상 같은 학습지가 나오도록 id 기반 seed로 생성한다.
+// 채점 결과는 장(A면 + B면) 단위로 보여주며, 수정 내역(GradingError)마다
+// 항상 같은 학습지가 나오도록 id 기반 seed로 생성한다.
 
 export type WorksheetMark = 'correct' | 'wrong'
+export type WorksheetSide = 'a' | 'b'
 
 export type WorksheetItem = {
   number: number
@@ -14,11 +16,18 @@ export type WorksheetItem = {
 }
 
 export type ReviewedWorksheet = {
+  side: WorksheetSide
   code: string
   title: string
   subject: Subject
   items: WorksheetItem[]
   allCorrect: boolean
+  reviewedQuestion: number | null
+}
+
+export type ReviewedSheet = {
+  reviewedSide: WorksheetSide
+  sides: [ReviewedWorksheet, ReviewedWorksheet]
 }
 
 const QUESTION_COUNT = 10
@@ -92,30 +101,41 @@ function questionsFor(subject: Subject, random: () => number) {
   return { title: '알맞은 말을 쓰세요', questions: bankQuestions(scienceBlanks, random, (sentence) => sentence) }
 }
 
-export function createReviewedWorksheet(error: GradingError): ReviewedWorksheet {
-  const seed = hash(error.id)
+function createSide(error: GradingError, side: WorksheetSide, reviewed: boolean): ReviewedWorksheet {
+  // 수정 문항이 있는 면은 기존 seed를 그대로 써서 이전과 같은 학습지가 나오게 한다.
+  const seed = hash(reviewed ? error.id : `${error.id}-${side}`)
   const random = createRandom(seed)
   const { title, questions } = questionsFor(error.subject, random)
-  const reviewedIndex = Math.min(Math.max(error.question, 1), QUESTION_COUNT) - 1
-  const allCorrect = error.after === '정답' && seed % 3 === 0
+  const reviewedIndex = reviewed ? Math.min(Math.max(error.question, 1), QUESTION_COUNT) - 1 : -1
+  const allCorrect = reviewed ? error.after === '정답' && seed % 3 === 0 : seed % 3 === 0
 
   const marks: WorksheetMark[] = questions.map((_, index) => {
     if (index === reviewedIndex) return error.after === '정답' ? 'correct' : 'wrong'
     if (allCorrect) return 'correct'
     return random() < 0.3 ? 'wrong' : 'correct'
   })
-  if (!allCorrect && !marks.includes('wrong')) marks[(reviewedIndex + 3) % QUESTION_COUNT] = 'wrong'
+  if (!allCorrect && !marks.includes('wrong')) marks[(Math.max(reviewedIndex, 0) + 3) % QUESTION_COUNT] = 'wrong'
 
   return {
-    code: `${error.subject} ${error.stage} ${error.progress}${error.page % 2 === 0 ? 'a' : 'b'}`,
+    side,
+    code: `${error.subject} ${error.stage} ${error.progress}${side}`,
     title,
     subject: error.subject,
     allCorrect,
+    reviewedQuestion: reviewed ? reviewedIndex + 1 : null,
     items: questions.map((question, index) => ({
       number: index + 1,
       prompt: question.prompt,
       answer: marks[index] === 'correct' ? question.correct : question.wrong,
       mark: marks[index],
     })),
+  }
+}
+
+export function createReviewedSheet(error: GradingError): ReviewedSheet {
+  const reviewedSide: WorksheetSide = error.page % 2 === 0 ? 'a' : 'b'
+  return {
+    reviewedSide,
+    sides: [createSide(error, 'a', reviewedSide === 'a'), createSide(error, 'b', reviewedSide === 'b')],
   }
 }

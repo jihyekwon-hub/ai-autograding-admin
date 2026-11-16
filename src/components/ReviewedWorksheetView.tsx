@@ -1,6 +1,6 @@
 import { BookOpen, Calculator, Circle, FlaskConical, Languages, X } from 'lucide-react'
 import type { Subject } from '../data/curriculum'
-import type { ReviewedWorksheet, WorksheetMark } from '../data/worksheets'
+import type { ReviewedSheet, ReviewedWorksheet, WorksheetMark } from '../data/worksheets'
 
 const subjectIcons: Record<Subject, typeof Calculator> = {
   수학: Calculator,
@@ -17,8 +17,25 @@ function MarkBadge({ mark }: { mark: WorksheetMark }) {
   )
 }
 
-// 회원용 결과 화면: 전 문항 정답이면 큰 동그라미, 정답/오답이 섞이면 문항별 O/X를 표시한다.
-export function ReviewedWorksheetView({ worksheet }: { worksheet: ReviewedWorksheet }) {
+// 채점 결과는 장 단위: A면과 B면을 나란히 보여준다.
+export function ReviewedSheetView({ sheet }: { sheet: ReviewedSheet }) {
+  return (
+    <div className="reviewed-sheet">
+      {sheet.sides.map((worksheet) => (
+        <section className="reviewed-sheet-side" key={worksheet.side} aria-label={`${worksheet.side.toUpperCase()}면`}>
+          <div className="reviewed-sheet-side-label">
+            <strong>{worksheet.side.toUpperCase()}면</strong>
+            {worksheet.reviewedQuestion !== null && <span>수정 문항 {worksheet.reviewedQuestion}번 포함</span>}
+          </div>
+          <ReviewedWorksheetView worksheet={worksheet} />
+        </section>
+      ))}
+    </div>
+  )
+}
+
+// 회원용 결과 화면(한 면): 전 문항 정답이면 큰 동그라미, 정답/오답이 섞이면 문항별 O/X를 표시한다.
+function ReviewedWorksheetView({ worksheet }: { worksheet: ReviewedWorksheet }) {
   const Icon = subjectIcons[worksheet.subject]
   const longPrompt = worksheet.subject === '과학'
 
