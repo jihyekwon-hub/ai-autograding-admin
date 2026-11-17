@@ -295,10 +295,8 @@ a { color: inherit; text-decoration: none; }
 .rule-editor-footer > div:first-child { color: #7c8899; font-size: 9px; }
 .rule-editor-footer > div:last-child { display: flex; gap: 7px; }
 .rule-editor-footer button { height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 11px; border-radius: 5px; font-size: 10px; font-weight: 600; }
-.operation-reset-button { border: 1px solid #d4dce6; background: #fff; color: #59687d; }
 .operation-save-button { border: 0; background: #183b66; color: #fff; }
 .save-confirmation { display: flex; align-items: center; gap: 5px; color: #2d7458; font-weight: 600; }
-.applied-context-badge { padding: 6px 9px; border-radius: 5px; background: #eaf0f7; color: #486584; font-size: 9px; font-weight: 600; }
 .operation-table-wrap { overflow-x: auto; }
 .operation-table { width: 100%; min-width: 1040px; border-collapse: collapse; }
 .operation-table th { padding: 9px 10px; border-bottom: 1px solid #dfe5ed; background: #f3f6f9; color: #5a687c; font-size: 9px; font-weight: 600; text-align: left; white-space: nowrap; }
@@ -309,6 +307,34 @@ a { color: inherit; text-decoration: none; }
 .result-badge.result-자동확정 { background: #e8f1fa; color: #2d639f; }
 .result-badge.result-검수후확정 { background: #edf2f7; color: #52769b; }
 .result-badge.result-채점센터 { background: #f0f1f3; color: #596678; }
+/* 현재 적용 중인 운영기준: 처리 결과 선택 탭 + 5열 목록 */
+.applied-result-tabs { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid #d9e1eb; border-radius: 8px; background: #eef2f7; }
+.applied-result-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #5a687c; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); white-space: nowrap; }
+.applied-result-tabs button span { min-width: 22px; padding: 1px 6px; border-radius: 999px; background: #dfe6ef; color: #4c5d73; font-size: var(--font-size-xs); text-align: center; }
+.applied-result-tabs button.active { background: #fff; color: #183b66; box-shadow: 0 1px 3px rgba(20,39,68,.14); }
+.applied-result-tabs button.active.result-자동확정 span { background: #2d639f; color: #fff; }
+.applied-result-tabs button.active.result-검수후확정 span { background: #52769b; color: #fff; }
+.applied-result-tabs button.active.result-채점센터 span { background: #596678; color: #fff; }
+.operation-table.applied-rules-table { min-width: 560px; }
+.applied-rules-table th, .applied-rules-table td { width: 20%; }
+.answer-badge { display: inline-block; min-width: 42px; padding: 3px 8px; border-radius: 4px; font-weight: var(--font-weight-semibold); text-align: center; }
+.answer-badge.correct { background: #e9f6ef; color: #2b7a52; }
+.answer-badge.wrong { background: #fcecec; color: #b84a4a; }
+.applied-rules-empty { padding: 28px 10px !important; color: #8793a4 !important; text-align: center; }
+/* 기준 저장 확인 팝업 */
+.operation-confirm-modal { width: min(420px, calc(100vw - 32px)); overflow: hidden; border-radius: 12px; background: #fff; box-shadow: 0 20px 60px rgba(10,25,45,.3); }
+.operation-confirm-body { display: grid; justify-items: center; gap: 8px; padding: 26px 24px 18px; text-align: center; }
+.operation-confirm-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: #e8f0fa; color: #183b66; }
+.operation-confirm-body h2 { margin: 4px 0 0; color: #1f2a3a; font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); }
+.operation-confirm-body p { margin: 0; color: #6c788a; font-size: var(--font-size-sm); }
+.operation-confirm-body dl { width: 100%; display: grid; gap: 6px; margin: 8px 0 0; padding: 12px 14px; border-radius: 8px; background: #f5f7fa; text-align: left; }
+.operation-confirm-body dl div { display: flex; justify-content: space-between; gap: 12px; }
+.operation-confirm-body dt { color: #7c8899; font-size: var(--font-size-sm); }
+.operation-confirm-body dd { margin: 0; color: #2a3a50; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
+.operation-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 24px 22px; }
+.operation-confirm-actions button { height: 40px; border-radius: 7px; font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); }
+.operation-confirm-actions .cancel { border: 1px solid #d4dce6; background: #fff; color: #4f5e72; }
+.operation-confirm-actions .confirm { border: 0; background: #183b66; color: #fff; }
 
 @media (max-width: 1250px) {
   .operation-main-grid { grid-template-columns: 1fr; }
@@ -475,6 +501,8 @@ a { color: inherit; text-decoration: none; }
   .rule-editor-row > b { grid-row: span 2; }
   .rule-editor-row .result-select { grid-column: 2 / 4; }
   .rule-editor-row .rule-toggle { grid-column: 1; grid-row: 2; }
+  .applied-result-tabs { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .applied-result-tabs button { justify-content: center; gap: 4px; padding: 0 4px; }
   .rule-editor-footer { align-items: flex-start; flex-direction: column; }
   .operation-panel-heading { align-items: flex-start; flex-direction: column; }
 }
@@ -1031,7 +1059,6 @@ a { color: inherit; text-decoration: none; }
 .operation-rule-page .rule-editor-footer > div:first-child { font-size: var(--font-size-sm); }
 .operation-rule-page .rule-editor-footer button,
 .operation-rule-page .operation-add-rule { font-size: var(--font-size-base); }
-.operation-rule-page .applied-context-badge,
 .operation-rule-page .result-badge { font-size: var(--font-size-sm); }
 .operation-rule-page .operation-table th { font-size: var(--font-size-base); }
 .operation-rule-page .operation-table td { font-size: var(--font-size-sm); }
