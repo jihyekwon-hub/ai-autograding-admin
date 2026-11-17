@@ -1,5 +1,5 @@
-import { BarChart3, Check, CheckCircle2, Plus, RotateCcw, Save, Search, Settings2, ShieldCheck, Trash2, UserCheck, Warehouse } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Check, Plus, RotateCcw, Save, Search, Settings2, ShieldCheck, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { operationSubjects, type OperationRule, type OperationSubject, type RuleResult } from '../data/operationRules'
 import { progressNumbers } from '../data/curriculum'
 import { useAdminData } from '../contexts/adminStore'
@@ -10,8 +10,6 @@ type RuleContext = {
   progressFrom: number
   progressTo: number
 }
-
-const number = new Intl.NumberFormat('ko-KR')
 
 function conditionText(rule: OperationRule) {
   if (rule.minLp === null || rule.maxLp === null) return `${rule.answer} · LP 전체`
@@ -29,18 +27,6 @@ export function OperationRulePage() {
   const [validationMessage, setValidationMessage] = useState('')
 
   const stages = operationSubjects[context.subject]
-  const rangeCount = Math.max(1, context.progressTo - context.progressFrom + 1)
-
-  const impact = useMemo(() => {
-    const result: Record<RuleResult, number> = { 자동확정: 0, 검수후확정: 0, 채점센터: 0 }
-    const baseVolumes = [0, 1624, 1078, 414, 322]
-    draftRules.forEach((rule) => {
-      if (rule.enabled) result[rule.result] += Math.round((baseVolumes[rule.id] ?? 520 + rule.id * 80) * (rangeCount / 30))
-    })
-    return result
-  }, [draftRules, rangeCount])
-
-  const totalImpact = impact.자동확정 + impact.검수후확정 + impact.채점센터
 
   const updateRule = (id: number, patch: Partial<OperationRule>) => {
     setDraftRules((rules) => rules.map((rule) => rule.id === id ? { ...rule, ...patch } : rule))
@@ -74,11 +60,6 @@ export function OperationRulePage() {
     setDraftRules(savedRules.map((rule) => ({ ...rule })))
     setSavedMessage(false)
   }
-
-  const distribution = Array.from({ length: Math.min(10, rangeCount) }, (_, index) => ({
-    label: context.progressFrom + index,
-    value: Math.max(420, 1180 - index * 72 + (index % 3) * 110),
-  }))
 
   return (
     <div className="page operation-rule-page">
@@ -114,19 +95,6 @@ export function OperationRulePage() {
           <div className="rule-editor-footer">
             <div>{validationMessage ? <span className="operation-validation">{validationMessage}</span> : savedMessage ? <span className="save-confirmation"><Check size={15} /> 저장된 기준이 화면에 반영되었습니다.</span> : <span>마지막 저장: {savedAt}</span>}</div>
             <div><button type="button" className="operation-reset-button" onClick={resetRules}><RotateCcw size={15} /> 되돌리기</button><button type="button" className="operation-save-button" onClick={saveRules}><Save size={15} /> 기준 저장</button></div>
-          </div>
-        </section>
-
-        <section className="operation-panel impact-panel">
-          <div className="operation-panel-heading"><div><BarChart3 size={18} /><span><strong>예상 영향 분석</strong><small>현재 설정을 적용했을 때의 예상 처리 물량</small></span></div></div>
-          <div className="impact-kpis">
-            <article><CheckCircle2 size={19} /><span>자동확정<strong>{number.format(impact.자동확정)}장</strong><small>{totalImpact ? ((impact.자동확정 / totalImpact) * 100).toFixed(1) : '0.0'}%</small></span></article>
-            <article><UserCheck size={19} /><span>검수후확정<strong>{number.format(impact.검수후확정)}장</strong><small>{totalImpact ? ((impact.검수후확정 / totalImpact) * 100).toFixed(1) : '0.0'}%</small></span></article>
-            <article><Warehouse size={19} /><span>채점센터<strong>{number.format(impact.채점센터)}장</strong><small>{totalImpact ? ((impact.채점센터 / totalImpact) * 100).toFixed(1) : '0.0'}%</small></span></article>
-          </div>
-          <div className="impact-charts">
-            <div className="progress-volume-chart"><h3>진도번호별 예상 물량</h3><div>{distribution.map((item) => <span key={item.label}><b>{number.format(item.value)}</b><i style={{ height: `${(item.value / 1300) * 100}%` }} /><small>{item.label}</small></span>)}</div></div>
-            <div className="impact-donut-wrap"><div className="impact-donut" style={{ background: `conic-gradient(#376fba 0 ${totalImpact ? impact.자동확정 / totalImpact * 100 : 0}%, #77a4d8 ${totalImpact ? impact.자동확정 / totalImpact * 100 : 0}% ${totalImpact ? (impact.자동확정 + impact.검수후확정) / totalImpact * 100 : 0}%, #b2c1d2 ${totalImpact ? (impact.자동확정 + impact.검수후확정) / totalImpact * 100 : 0}% 100%)` }}><span><strong>{number.format(totalImpact)}</strong>예상 물량</span></div></div>
           </div>
         </section>
       </div>

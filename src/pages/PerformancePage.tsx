@@ -114,12 +114,14 @@ export function PerformancePage() {
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const visibleRows = rows.slice((page - 1) * pageSize, page * pageSize)
   const maxTotal = Math.max(1, ...rows.map((row) => row.total))
-  const chartWidth = Math.max(760, 84 + rows.length * 72)
-  const linePoints = rows.map((row, index) => {
-    const x = 42 + index * 72
-    const y = Math.max(35, Math.min(185, 190 - rate(getAutoGraded(row), row.total) * 1.25))
-    return `${x},${y}`
-  }).join(' ')
+  const barScale = 145 / maxTotal
+  // 막대 오른쪽에 계열별 숫자를 표기하므로, 가장 긴 숫자 길이에 맞춰 열 너비를 정한다.
+  const maxValueLength = Math.max(1, ...rows.map((row) => number.format(row.total).length))
+  const columnWidth = Math.max(96, 56 + maxValueLength * 8)
+  const chartWidth = Math.max(760, 24 + rows.length * columnWidth)
+  const lineX = (index: number) => 31 + index * columnWidth
+  const lineY = (row: AggregatedRow) => Math.max(35, Math.min(185, 190 - rate(getAutoGraded(row), row.total) * 1.25))
+  const linePoints = rows.map((row, index) => `${lineX(index)},${lineY(row)}`).join(' ')
 
   const stageOptions = draft.subject === '전체' ? [] : subjectStages[draft.subject]
 
@@ -187,13 +189,30 @@ export function PerformancePage() {
           <div className="trend-chart-scroll">
             <div className="trend-chart" style={{ width: `${chartWidth}px` }}>
               <div className="trend-grid-lines"><i /><i /><i /><i /><i /></div>
-              <div className="trend-bars" style={{ gridTemplateColumns: `repeat(${rows.length}, 72px)` }}>
+              <div className="trend-bars" style={{ gridTemplateColumns: `repeat(${rows.length}, ${columnWidth}px)` }}>
                 {rows.map((row) => {
-                  const scale = 160 / maxTotal
-                  return <div className="trend-column" key={row.key}><div className="trend-bar-shell" style={{ height: `${row.total * scale}px` }}><div className="trend-stack"><i className="center" style={{ height: `${row.gradingCenter * scale}px` }} /><i className="review" style={{ height: `${row.reviewConfirmed * scale}px` }} /><i className="auto" style={{ height: `${row.autoConfirmed * scale}px` }} /></div></div><b>{formatChartLabel(row.label, applied.unit)}</b></div>
+                  const segments = [
+                    { key: 'center', value: row.gradingCenter },
+                    { key: 'review', value: row.reviewConfirmed },
+                    { key: 'auto', value: row.autoConfirmed },
+                  ]
+                  return (
+                    <div className="trend-column" key={row.key}>
+                      <div className="trend-bar-group">
+                        <div className="trend-bar-shell" style={{ height: `${row.total * barScale}px` }}>
+                          <span className="trend-value trend-total-value" title="전체">{number.format(row.total)}</span>
+                          <div className="trend-stack">{segments.map((segment) => <i key={segment.key} className={segment.key} style={{ height: `${segment.value * barScale}px` }} />)}</div>
+                        </div>
+                        <div className="trend-segment-values" style={{ height: `${row.total * barScale}px` }}>
+                          {segments.map((segment) => <span key={segment.key} style={{ height: `${segment.value * barScale}px` }}><em className="trend-value">{number.format(segment.value)}</em></span>)}
+                        </div>
+                      </div>
+                      <b>{formatChartLabel(row.label, applied.unit)}</b>
+                    </div>
+                  )
                 })}
               </div>
-              <svg className="trend-line" viewBox={`0 0 ${chartWidth} 220`} preserveAspectRatio="none" aria-label="자동채점 비율 선 그래프"><polyline points={linePoints} />{rows.map((row, index) => <circle key={row.key} cx={42 + index * 72} cy={Math.max(35, Math.min(185, 190 - rate(getAutoGraded(row), row.total) * 1.25))} r="4" />)}</svg>
+              <svg className="trend-line" viewBox={`0 0 ${chartWidth} 220`} preserveAspectRatio="none" aria-label="자동채점 비율 선 그래프"><polyline points={linePoints} />{rows.map((row, index) => <circle key={row.key} cx={lineX(index)} cy={lineY(row)} r="4" />)}</svg>
             </div>
           </div>
         </section>
