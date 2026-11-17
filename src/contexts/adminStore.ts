@@ -1,14 +1,12 @@
 import { createContext, useContext, type Dispatch, type SetStateAction } from 'react'
 import type { HistoryRecord } from '../data/history'
-import type { AppliedRuleSet, OperationRule } from '../data/operationRules'
-import type { Subject } from '../data/curriculum'
+import type { RuleSettings } from '../data/operationRules'
 
-export type OperationSnapshot = { subject: Subject; stage: string; progressFrom: number; progressTo: number; rules: OperationRule[]; savedAt: string }
 export type AdminDataContextValue = {
-  operation: OperationSnapshot
-  setOperation: Dispatch<SetStateAction<OperationSnapshot>>
-  ruleSets: AppliedRuleSet[]
-  setRuleSets: Dispatch<SetStateAction<AppliedRuleSet[]>>
+  ruleSettings: RuleSettings
+  setRuleSettings: Dispatch<SetStateAction<RuleSettings>>
+  rulesSavedAt: string
+  setRulesSavedAt: Dispatch<SetStateAction<string>>
   history: HistoryRecord[]
   addHistory: (record: Omit<HistoryRecord, 'id' | 'timestamp'>) => void
 }

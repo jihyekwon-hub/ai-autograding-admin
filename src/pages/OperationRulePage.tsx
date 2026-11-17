@@ -1,159 +1,355 @@
-import { Check, Plus, Save, Search, Settings2, ShieldCheck, Trash2 } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Check, Copy, ListChecks, Plus, Save, ShieldCheck, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { operationSubjects, ruleResults, ruleSetKey, type AppliedRuleSet, type OperationRule, type OperationSubject, type RuleResult } from '../data/operationRules'
-import { curriculumStages, progressNumbers, subjects, TODAY } from '../data/curriculum'
 import { useAdminData } from '../contexts/adminStore'
+import { curriculumStages, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
+import {
+  answerTypes,
+  cleanSetting,
+  compressProgress,
+  findOverlaps,
+  hasResult,
+  isUnset,
+  ruleResults,
+  sameSetting,
+  stageKey,
+  type AnswerType,
+  type LpRange,
+  type ProgressSetting,
+  type RuleResult,
+  type RuleSettings,
+  type StageSettings,
+} from '../data/operationRules'
 
-type RuleContext = {
-  subject: OperationSubject
-  stage: string
-  progressFrom: number
-  progressTo: number
+type ViewKey = RuleResult | '미설정'
+const viewKeys: ViewKey[] = [...ruleResults, '미설정']
+
+// 범위를 새로 추가할 때 처리 결과별 기본 LP 값
+const defaultRanges: Record<RuleResult, Record<AnswerType, LpRange>> = {
+  자동확정: { 정답: { min: 95, max: 100 }, 오답: { min: 98, max: 100 } },
+  검수후확정: { 정답: { min: 90, max: 94 }, 오답: { min: 95, max: 100 } },
+  채점센터: { 정답: { min: 0, max: 89 }, 오답: { min: 0, max: 94 } },
 }
 
-function conditionText(rule: OperationRule) {
-  if (rule.minLp === null || rule.maxLp === null) return `${rule.answer} · LP 전체`
-  return `${rule.answer} · LP ${rule.minLp}~${rule.maxLp}`
+type ChangedStage = { subject: Subject; stage: string; progresses: number[] }
+
+const emptyStage: StageSettings = {}
+
+function stageSummary(stageSettings: StageSettings, progresses: number[]) {
+  const unset = progresses.filter((progress) => isUnset(stageSettings[progress])).length
+  const counts = ruleResults.map((result) => `${result} ${progresses.filter((progress) => hasResult(stageSettings[progress], result)).length}`).join(' · ')
+  return `미설정 ${unset}개 / ${counts}`
 }
 
-const rangeText = (from: string | number, to: string | number) => from === to ? String(from) : `${from}~${to}`
+function settingSummary(setting: ProgressSetting | undefined) {
+  if (isUnset(setting)) return '미설정'
+  return ruleResults
+    .filter((result) => hasResult(setting, result))
+    .map((result) => `${result} ${answerTypes.filter((answer) => setting?.[result]?.[answer]).map((answer) => `${answer} ${setting?.[result]?.[answer]?.min}~${setting?.[result]?.[answer]?.max}`).join(', ')}`)
+    .join(' · ')
+}
 
-function compareRuleRows(a: { set: AppliedRuleSet; rule: OperationRule }, b: { set: AppliedRuleSet; rule: OperationRule }) {
-  return subjects.indexOf(a.set.subject) - subjects.indexOf(b.set.subject)
-    || curriculumStages[a.set.subject].indexOf(a.set.stageFrom) - curriculumStages[b.set.subject].indexOf(b.set.stageFrom)
-    || a.set.progressFrom - b.set.progressFrom
-    || a.set.progressTo - b.set.progressTo
-    || a.rule.answer.localeCompare(b.rule.answer)
-    || (b.rule.minLp ?? 0) - (a.rule.minLp ?? 0)
+// 받침 유무에 따라 '과/와'를 붙인다. (예: 자동확정과, 채점센터와)
+function withGwa(word: string) {
+  const code = word.charCodeAt(word.length - 1) - 0xac00
+  return `${word}${code >= 0 && code <= 11171 && code % 28 !== 0 ? '과' : '와'}`
+}
+
+function rangeError(range: LpRange) {
+  return range.min < 0 || range.max > 100 || range.min > range.max
 }
 
 export function OperationRulePage() {
-  const { operation, setOperation, ruleSets, setRuleSets, addHistory } = useAdminData()
-  const [context, setContext] = useState<RuleContext>({ subject: operation.subject, stage: operation.stage, progressFrom: operation.progressFrom, progressTo: operation.progressTo })
-  const [appliedContext, setAppliedContext] = useState<RuleContext>({ subject: operation.subject, stage: operation.stage, progressFrom: operation.progressFrom, progressTo: operation.progressTo })
-  const [draftRules, setDraftRules] = useState<OperationRule[]>(operation.rules)
-  const [savedAt, setSavedAt] = useState(operation.savedAt)
-  const [savedMessage, setSavedMessage] = useState(false)
-  const [validationMessage, setValidationMessage] = useState('')
+  const { ruleSettings, setRuleSettings, rulesSavedAt, setRulesSavedAt, addHistory } = useAdminData()
+  const [subject, setSubject] = useState<Subject>('수학')
+  const [stage, setStage] = useState('A')
+  const [view, setView] = useState<ViewKey>('자동확정')
+  const [draft, setDraft] = useState<RuleSettings>(ruleSettings)
+  const [bulk, setBulk] = useState({ from: 1, to: 30, answer: '정답' as AnswerType, min: 95, max: 100, source: 0 })
+  const [message, setMessage] = useState<{ tone: 'error' | 'success' | 'info'; text: string } | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [resultFilter, setResultFilter] = useState<RuleResult>('자동확정')
 
-  const stages = operationSubjects[context.subject]
-  const contextKey = ruleSetKey({ subject: context.subject, stageFrom: context.stage, stageTo: context.stage, progressFrom: context.progressFrom, progressTo: context.progressTo })
-  const existingSet = ruleSets.find((set) => ruleSetKey(set) === contextKey)
+  const key = stageKey(subject, stage)
+  const savedStage = ruleSettings[key] ?? emptyStage
+  const draftStage = draft[key] ?? emptyStage
 
-  // 현재 적용 중인 운영기준: 저장된 모든 기준 묶음에서 선택한 처리 결과의 사용 중인 Rule만 모은다.
-  const appliedRows = useMemo(() => ruleSets
-    .flatMap((set) => set.rules.filter((rule) => rule.enabled).map((rule) => ({ key: `${set.id}-${rule.id}`, set, rule })))
-    .sort(compareRuleRows), [ruleSets])
-  const resultCounts = Object.fromEntries(ruleResults.map((result) => [result, appliedRows.filter((row) => row.rule.result === result).length])) as Record<RuleResult, number>
-  const visibleRows = appliedRows.filter((row) => row.rule.result === resultFilter)
+  const counts = useMemo(() => {
+    const result = Object.fromEntries(viewKeys.map((item) => [item, 0])) as Record<ViewKey, number>
+    progressNumbers.forEach((progress) => {
+      const setting = draftStage[progress]
+      if (isUnset(setting)) result.미설정 += 1
+      ruleResults.forEach((item) => { if (hasResult(setting, item)) result[item] += 1 })
+    })
+    return result
+  }, [draftStage])
+  const unsetProgresses = useMemo(() => progressNumbers.filter((progress) => isUnset(draftStage[progress])), [draftStage])
 
-  const updateRule = (id: number, patch: Partial<OperationRule>) => {
-    setDraftRules((rules) => rules.map((rule) => rule.id === id ? { ...rule, ...patch } : rule))
-    setSavedMessage(false)
-    setValidationMessage('')
+  // 저장 전후 어느 쪽이든 해당되는 진도번호는 목록에 남겨, 편집 중에 행이 사라지지 않게 한다.
+  const rows = useMemo(() => progressNumbers.filter((progress) => view === '미설정'
+    ? isUnset(draftStage[progress]) || isUnset(savedStage[progress])
+    : hasResult(draftStage[progress], view) || hasResult(savedStage[progress], view)), [draftStage, savedStage, view])
+
+  const configuredProgresses = useMemo(() => progressNumbers.filter((progress) => !isUnset(draftStage[progress])), [draftStage])
+
+  // 저장되지 않은 변경: 바뀐 단계만 진도번호 단위로 비교한다.
+  const changedStages = useMemo<ChangedStage[]>(() => Object.keys(draft)
+    .filter((itemKey) => draft[itemKey] !== ruleSettings[itemKey])
+    .map((itemKey) => {
+      const [itemSubject, itemStage] = itemKey.split('|') as [Subject, string]
+      const progresses = progressNumbers.filter((progress) => !sameSetting(draft[itemKey]?.[progress], ruleSettings[itemKey]?.[progress]))
+      return { subject: itemSubject, stage: itemStage, progresses }
+    })
+    .filter((item) => item.progresses.length > 0), [draft, ruleSettings])
+  const changedCount = changedStages.reduce((sum, item) => sum + item.progresses.length, 0)
+
+  const firstBlock = (list: number[]) => {
+    if (!list.length) return { from: 1, to: 1 }
+    let end = 0
+    while (end + 1 < list.length && list[end + 1] === list[end] + 1) end += 1
+    return { from: list[0], to: list[end] }
   }
 
-  const addRule = () => setDraftRules((rules) => [...rules, { id: Math.max(0, ...rules.map((rule) => rule.id)) + 1, answer: '정답', minLp: 0, maxLp: 100, result: '검수후확정', enabled: true }])
-  const deleteRule = (id: number) => setDraftRules((rules) => rules.filter((rule) => rule.id !== id).map((rule, index) => ({ ...rule, id: index + 1 })))
-
-  const applyContext = () => {
-    setAppliedContext(context)
-    setSavedMessage(false)
+  // 과목·단계·처리결과를 바꾸면 일괄 입력 기본값을 현재 목록에 맞춘다.
+  const resetBulk = (nextView: ViewKey, nextStage: StageSettings) => {
+    const list = progressNumbers.filter((progress) => nextView === '미설정' ? isUnset(nextStage[progress]) : hasResult(nextStage[progress], nextView))
+    const block = firstBlock(list)
+    const configured = progressNumbers.filter((progress) => !isUnset(nextStage[progress]))
+    const answer: AnswerType = '정답'
+    const range = nextView === '미설정' ? { min: 0, max: 100 } : defaultRanges[nextView][answer]
+    setBulk({ ...block, answer, ...range, source: configured[configured.length - 1] ?? 0 })
   }
 
-  // [기준 저장]: 먼저 검증하고, 통과하면 저장 여부를 묻는 확인 팝업을 띄운다.
+  const changeSubject = (next: Subject) => {
+    const nextStage = curriculumStages[next][0]
+    setSubject(next)
+    setStage(nextStage)
+    resetBulk(view, draft[stageKey(next, nextStage)] ?? {})
+  }
+  const changeStage = (next: string) => {
+    setStage(next)
+    resetBulk(view, draft[stageKey(subject, next)] ?? {})
+  }
+  const changeView = (next: ViewKey) => {
+    setView(next)
+    resetBulk(next, draftStage)
+  }
+
+  const updateStage = (update: (stageSettings: StageSettings) => StageSettings) => {
+    setDraft((current) => ({ ...current, [key]: update(current[key] ?? {}) }))
+    setMessage(null)
+  }
+
+  const setRange = (progress: number, result: RuleResult, answer: AnswerType, range: LpRange | undefined) => updateStage((stageSettings) => {
+    const current = stageSettings[progress] ?? {}
+    return { ...stageSettings, [progress]: cleanSetting({ ...current, [result]: { ...current[result], [answer]: range } }) }
+  })
+
+  const applyBulk = () => {
+    const from = Math.min(bulk.from, bulk.to)
+    const to = Math.max(bulk.from, bulk.to)
+    const targets = progressNumbers.filter((progress) => progress >= from && progress <= to)
+    if (view === '미설정') {
+      const source = draftStage[bulk.source]
+      if (!source || isUnset(source)) { setMessage({ tone: 'error', text: '복사할 기준 진도번호를 선택해주세요.' }); return }
+      updateStage((stageSettings) => ({ ...stageSettings, ...Object.fromEntries(targets.map((progress) => [progress, cleanSetting(source)])) }))
+      setMessage({ tone: 'info', text: `진도번호 ${compressProgress(targets)}에 진도번호 ${bulk.source}의 기준을 적용했습니다. 저장해야 반영됩니다.` })
+      return
+    }
+    const range = { min: bulk.min, max: bulk.max }
+    if (rangeError(range)) { setMessage({ tone: 'error', text: 'LP 범위는 0~100이며 최솟값이 최댓값보다 클 수 없습니다.' }); return }
+    const result = view
+    updateStage((stageSettings) => ({ ...stageSettings, ...Object.fromEntries(targets.map((progress) => {
+      const current = stageSettings[progress] ?? {}
+      return [progress, cleanSetting({ ...current, [result]: { ...current[result], [bulk.answer]: range } })]
+    })) }))
+    setMessage({ tone: 'info', text: `진도번호 ${compressProgress(targets)}의 ${view} ${bulk.answer} LP 범위를 변경했습니다(${range.min}~${range.max}). 저장해야 반영됩니다.` })
+  }
+
+  const clearBulk = () => {
+    if (view === '미설정') return
+    const from = Math.min(bulk.from, bulk.to)
+    const to = Math.max(bulk.from, bulk.to)
+    const result = view
+    updateStage((stageSettings) => ({ ...stageSettings, ...Object.fromEntries(progressNumbers.filter((progress) => progress >= from && progress <= to).map((progress) => {
+      const current = stageSettings[progress] ?? {}
+      return [progress, cleanSetting({ ...current, [result]: { ...current[result], [bulk.answer]: undefined } })]
+    })) }))
+    setMessage({ tone: 'info', text: `진도번호 ${from}~${to}의 ${view} ${bulk.answer} 범위를 해제했습니다. 저장해야 반영됩니다.` })
+  }
+
   const requestSave = () => {
-    const invalidRange = draftRules.some((rule) => rule.minLp === null || rule.maxLp === null || rule.minLp < 0 || rule.maxLp > 100 || rule.minLp > rule.maxLp)
-    const duplicate = draftRules.some((rule, index) => draftRules.some((other, otherIndex) => otherIndex !== index && rule.answer === other.answer && rule.minLp === other.minLp && rule.maxLp === other.maxLp))
-    if (invalidRange || duplicate || context.progressFrom > context.progressTo) { setValidationMessage(invalidRange ? 'LP 범위는 0~100이며 최솟값이 최댓값보다 클 수 없습니다.' : duplicate ? '동일한 채점 결과와 LP 범위가 중복되었습니다.' : '진도번호 범위를 확인해주세요.'); return }
-    setValidationMessage('')
+    if (changedCount === 0) { setMessage({ tone: 'info', text: '변경된 내용이 없습니다.' }); return }
+    const problems: string[] = []
+    changedStages.forEach((item) => {
+      item.progresses.forEach((progress) => {
+        const setting = draft[stageKey(item.subject, item.stage)]?.[progress] ?? {}
+        const invalid = ruleResults.some((result) => answerTypes.some((answer) => { const range = setting[result]?.[answer]; return range ? rangeError(range) : false }))
+        if (invalid) problems.push(`${item.subject} ${item.stage} 진도 ${progress}: LP 범위 오류(0~100, 최솟값 ≤ 최댓값)`)
+        findOverlaps(setting).forEach((overlap) => problems.push(`${item.subject} ${item.stage} 진도 ${progress}: ${overlap.answer} LP 범위가 ${overlap.results.join('·')}에서 겹침`))
+      })
+    })
+    if (problems.length) {
+      setMessage({ tone: 'error', text: `저장할 수 없습니다. ${problems.slice(0, 3).join(' / ')}${problems.length > 3 ? ` 외 ${problems.length - 3}건` : ''}` })
+      return
+    }
+    setMessage(null)
     setConfirmOpen(true)
   }
 
-  // 확인 팝업에서 [예]: 같은 과목·단계·진도 범위의 기준이 있으면 덮어쓰고, 없으면 새로 추가한다.
   const confirmSave = () => {
-    const rules = draftRules.map((rule) => ({ ...rule }))
-    const before = existingSet ? existingSet.rules.map(conditionText).join(' / ') : '-'
-    const after = rules.map(conditionText).join(' / ')
-    setRuleSets((sets) => existingSet
-      ? sets.map((set) => set.id === existingSet.id ? { ...set, rules } : set)
-      : [...sets, { id: `SET-${Date.now()}`, subject: context.subject, stageFrom: context.stage, stageTo: context.stage, progressFrom: context.progressFrom, progressTo: context.progressTo, rules }])
-    setAppliedContext(context)
     const timestamp = `${TODAY} ${new Date().toTimeString().slice(0, 5)}`
-    setSavedAt(timestamp)
-    setOperation({ ...context, rules, savedAt: timestamp })
-    addHistory({ type: '운영기준 변경', subtype: existingSet ? 'Rule 저장' : 'Rule 추가', subject: context.subject, stage: context.stage, scope: `${context.subject} / ${context.stage} / ${context.progressFrom}~${context.progressTo}`, title: '운영기준 Rule 변경', before, after, worker: '운영관리자(admin)', note: '운영기준 설정 화면에서 저장', targetKey: `RULE-${contextKey}` })
+    changedStages.forEach((item) => {
+      const itemKey = stageKey(item.subject, item.stage)
+      addHistory({
+        type: '운영기준 변경',
+        subtype: '진도별 기준 변경',
+        subject: item.subject,
+        stage: item.stage,
+        scope: `${item.subject} / ${item.stage} / ${compressProgress(item.progresses)}`,
+        title: `${item.subject} ${item.stage} 운영기준 변경 (진도번호 ${item.progresses.length}개)`,
+        before: stageSummary(ruleSettings[itemKey] ?? {}, item.progresses),
+        after: stageSummary(draft[itemKey] ?? {}, item.progresses),
+        worker: '운영관리자(admin)',
+        note: '운영기준 설정 화면에서 저장',
+        targetKey: `RULE-${itemKey}`,
+      })
+    })
+    setRuleSettings(draft)
+    setRulesSavedAt(timestamp)
     setConfirmOpen(false)
-    setSavedMessage(true)
+    setMessage({ tone: 'success', text: '저장된 기준이 화면에 반영되었습니다.' })
   }
+
+  const viewTitle = view === '미설정' ? '기준이 없는 진도번호' : `${view} LP 범위`
 
   return (
     <div className="page operation-rule-page">
-      <div className="operation-heading"><div><p>AI 자동채점 관리</p><h1>운영기준 설정</h1><span>과목·단계·진도번호별 자동채점 처리 기준을 설정합니다.</span></div></div>
+      <div className="operation-heading"><div><p>AI 자동채점 관리</p><h1>운영기준 설정</h1><span>과목·단계·처리결과별로 진도번호의 정오답 LP 범위를 확인하고 수정합니다.</span></div></div>
 
-      <section className="operation-context-card" aria-label="운영기준 조회 조건">
-        <div className="operation-context-fields">
-          <label>과목<select value={context.subject} onChange={(event) => { const subject = event.target.value as OperationSubject; setContext({ ...context, subject, stage: operationSubjects[subject][0] }) }}>{Object.keys(operationSubjects).map((subject) => <option key={subject}>{subject}</option>)}</select></label>
-          <label>단계<select value={context.stage} onChange={(event) => setContext({ ...context, stage: event.target.value })}>{stages.map((stage) => <option key={stage}>{stage}</option>)}</select></label>
-          <div className="operation-progress-fields"><label>시작 진도번호<select value={String(context.progressFrom)} onChange={(event) => { const value = Number(event.target.value); setContext({ ...context, progressFrom: value, progressTo: Math.max(value, context.progressTo) }) }}>{progressNumbers.map((value) => <option key={value}>{value}</option>)}</select></label><span>~</span><label>종료 진도번호<select value={String(context.progressTo)} onChange={(event) => setContext({ ...context, progressTo: Number(event.target.value) })}>{progressNumbers.filter((value) => value >= context.progressFrom).map((value) => <option key={value}>{value}</option>)}</select></label></div>
+      <section className="operation-filter-card" aria-label="운영기준 조회 조건">
+        <label>과목<select value={subject} onChange={(event) => changeSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label>단계<select value={stage} onChange={(event) => changeStage(event.target.value)}>{curriculumStages[subject].map((item) => <option key={item}>{item}</option>)}</select></label>
+        <div className="operation-view-field">
+          <span>처리결과</span>
+          <div className="operation-view-select">
+            <div className="operation-view-tabs" role="tablist" aria-label="처리결과 선택">
+              {viewKeys.map((item) => (
+                <button key={item} type="button" role="tab" aria-selected={view === item} className={`view-${item} ${view === item ? 'active' : ''}`} onClick={() => changeView(item)}>
+                  {item}<span>{counts[item]}</span>
+                </button>
+              ))}
+            </div>
+            {counts.미설정 > 0 && (
+              <span className="unset-alert" tabIndex={0} role="img" aria-label={`미설정 진도번호 ${counts.미설정}개`} aria-describedby="unset-alert-tip">
+                <AlertCircle size={20} />
+                <span className="unset-alert-tip" role="tooltip" id="unset-alert-tip">
+                  <strong>미설정 진도번호가 있습니다</strong>
+                  {subject} {stage}단계에서 어떤 처리결과도 설정되지 않은 진도번호가 {counts.미설정}개 있습니다.
+                  <em>진도번호 {compressProgress(unsetProgresses)}</em>
+                  '미설정'을 선택해 확인하고 기준을 지정하세요.
+                </span>
+              </span>
+            )}
+          </div>
         </div>
-        <div className="operation-context-summary"><span>현재 조회</span><strong>{appliedContext.subject} · {appliedContext.stage} · {appliedContext.progressFrom}~{appliedContext.progressTo}번</strong></div>
-        <button type="button" onClick={applyContext}><Search size={15} /> 조회 적용</button>
       </section>
 
-      <div className="operation-main-grid">
-        <section className="operation-panel rule-editor-panel">
-          <div className="operation-panel-heading"><div><Settings2 size={18} /><span><strong>분기 기준 설정</strong><small>정답 여부와 LP 값을 조합해 처리방식을 설정합니다.</small></span></div><button type="button" className="operation-add-rule" onClick={addRule}><Plus size={14}/> 기준 추가</button></div>
-          <div className="rule-help"><ShieldCheck size={16} /> 위에서부터 순서대로 조건을 확인하며, 첫 번째로 일치한 규칙의 처리 결과를 적용합니다.</div>
-          <div className="rule-editor-header"><span>순서</span><span>채점 결과</span><span>LP 최솟값</span><span>LP 최댓값</span><span>처리 결과</span><span>사용</span></div>
-          <div className="rule-editor-list">
-            {draftRules.map((rule) => (
-              <div className="rule-editor-row" key={rule.id}>
-                <b>{rule.id}</b>
-                <select value={rule.answer} onChange={(event) => updateRule(rule.id, { answer: event.target.value as OperationRule['answer'], minLp: rule.minLp ?? 0, maxLp: rule.maxLp ?? 100 })}><option>정답</option><option>오답</option></select>
-                <input aria-label={`${rule.id}번 규칙 LP 최솟값`} type="number" min="0" max="100" value={rule.minLp ?? 0} onChange={(event) => updateRule(rule.id, { minLp: Number(event.target.value) })} />
-                <input aria-label={`${rule.id}번 규칙 LP 최댓값`} type="number" min="0" max="100" value={rule.maxLp ?? 100} onChange={(event) => updateRule(rule.id, { maxLp: Number(event.target.value) })} />
-                <select className={`result-select result-${rule.result}`} value={rule.result} onChange={(event) => updateRule(rule.id, { result: event.target.value as RuleResult })}><option>자동확정</option><option>검수후확정</option><option>채점센터</option></select>
-                <div className="rule-enabled-actions"><label className="rule-toggle"><input type="checkbox" checked={rule.enabled} onChange={(event) => updateRule(rule.id, { enabled: event.target.checked })} /><span /></label><button type="button" aria-label={`${rule.id}번 규칙 삭제`} onClick={() => deleteRule(rule.id)}><Trash2 size={13}/></button></div>
-              </div>
-            ))}
-          </div>
-          <div className="rule-editor-footer">
-            <div>{validationMessage ? <span className="operation-validation">{validationMessage}</span> : savedMessage ? <span className="save-confirmation"><Check size={15} /> 저장된 기준이 화면에 반영되었습니다.</span> : <span>마지막 저장: {savedAt}</span>}</div>
-            <div><button type="button" className="operation-save-button" onClick={requestSave}><Save size={15} /> 기준 저장</button></div>
-          </div>
-        </section>
-      </div>
-
-      <section className="operation-panel applied-rules-panel">
+      <section className="operation-panel rule-list-panel">
         <div className="operation-panel-heading">
-          <div><ShieldCheck size={18} /><span><strong>현재 적용 중인 운영기준</strong><small>처리 결과별로 저장된 전체 기준을 확인합니다.</small></span></div>
-          <div className="applied-result-tabs" role="tablist" aria-label="처리 결과 선택">
-            {ruleResults.map((result) => (
-              <button key={result} type="button" role="tab" aria-selected={resultFilter === result} className={`result-${result} ${resultFilter === result ? 'active' : ''}`} onClick={() => setResultFilter(result)}>
-                {result}<span>{resultCounts[result]}</span>
-              </button>
-            ))}
-          </div>
+          <div><ListChecks size={18} /><span><strong>{subject} {stage}단계 · {viewTitle}</strong><small>진도번호 {rows.length}개{view !== '미설정' && ` · 같은 정오답 안에서 처리결과별 LP 범위는 겹칠 수 없습니다.`}</small></span></div>
         </div>
-        <div className="operation-table-wrap">
-          <table className="operation-table applied-rules-table">
-            <thead><tr><th>과목</th><th>단계 범위</th><th>진도번호 범위</th><th>정오답 여부</th><th>LP 범위</th></tr></thead>
+
+        <div className="rule-bulk-bar">
+          <strong>일괄 입력</strong>
+          <label>진도번호<input type="number" min="1" max="200" value={bulk.from} onChange={(event) => setBulk({ ...bulk, from: Number(event.target.value) })} /></label>
+          <span>~</span>
+          <label className="no-caption"><input type="number" min="1" max="200" aria-label="종료 진도번호" value={bulk.to} onChange={(event) => setBulk({ ...bulk, to: Number(event.target.value) })} /></label>
+          {view === '미설정' ? (
+            <>
+              <label>기준 복사<select value={bulk.source} onChange={(event) => setBulk({ ...bulk, source: Number(event.target.value) })}>
+                {configuredProgresses.length === 0 && <option value={0}>설정된 진도번호 없음</option>}
+                {configuredProgresses.map((progress) => <option key={progress} value={progress}>진도번호 {progress}</option>)}
+              </select></label>
+              <button type="button" className="bulk-apply" onClick={applyBulk}><Copy size={14} /> 같은 기준으로 설정</button>
+            </>
+          ) : (
+            <>
+              <label>정오답<select value={bulk.answer} onChange={(event) => { const answer = event.target.value as AnswerType; setBulk({ ...bulk, answer, ...defaultRanges[view][answer] }) }}>{answerTypes.map((item) => <option key={item}>{item}</option>)}</select></label>
+              <label>LP<input type="number" min="0" max="100" value={bulk.min} onChange={(event) => setBulk({ ...bulk, min: Number(event.target.value) })} /></label>
+              <span>~</span>
+              <label className="no-caption"><input type="number" min="0" max="100" aria-label="LP 최댓값" value={bulk.max} onChange={(event) => setBulk({ ...bulk, max: Number(event.target.value) })} /></label>
+              <button type="button" className="bulk-apply" onClick={applyBulk}><Check size={14} /> 적용</button>
+              <button type="button" className="bulk-clear" onClick={clearBulk}><X size={14} /> 해제</button>
+            </>
+          )}
+        </div>
+
+        <div className="rule-list-wrap">
+          <table className="rule-list-table">
+            <thead>
+              {view === '미설정'
+                ? <tr><th>진도번호</th><th>상태</th><th>설정 내용</th></tr>
+                : <tr><th>진도번호</th><th>정답 LP 범위</th><th>오답 LP 범위</th><th>상태</th></tr>}
+            </thead>
             <tbody>
-              {visibleRows.map(({ key, set, rule }) => (
-                <tr key={key}>
-                  <td>{set.subject}</td>
-                  <td>{rangeText(set.stageFrom, set.stageTo)}</td>
-                  <td>{rangeText(set.progressFrom, set.progressTo)}</td>
-                  <td><span className={`answer-badge ${rule.answer === '정답' ? 'correct' : 'wrong'}`}>{rule.answer}</span></td>
-                  <td><strong>{rule.minLp ?? 0}~{rule.maxLp ?? 100}</strong></td>
-                </tr>
-              ))}
-              {visibleRows.length === 0 && <tr><td className="applied-rules-empty" colSpan={5}>{resultFilter}로 설정된 기준이 없습니다.</td></tr>}
+              {rows.map((progress) => {
+                const setting = draftStage[progress]
+                const changed = !sameSetting(setting, savedStage[progress])
+                if (view === '미설정') {
+                  const unset = isUnset(setting)
+                  return (
+                    <tr key={progress} className={changed ? 'is-changed' : ''}>
+                      <td><b>{progress}</b></td>
+                      <td>{unset ? <span className="state-badge unset"><AlertCircle size={13} /> 미설정</span> : <span className="state-badge changed">설정됨 · 저장 전</span>}</td>
+                      <td className="setting-summary">{unset ? '-' : settingSummary(setting)}</td>
+                    </tr>
+                  )
+                }
+                const result = view
+                const overlaps = findOverlaps(setting ?? {}).filter((overlap) => overlap.results.includes(result))
+                const removed = !hasResult(setting, result)
+                return (
+                  <tr key={progress} className={`${changed ? 'is-changed' : ''} ${overlaps.length ? 'has-error' : ''}`}>
+                    <td><b>{progress}</b></td>
+                    {answerTypes.map((answer) => {
+                      const range = setting?.[result]?.[answer]
+                      return (
+                        <td key={answer}>
+                          {range ? (
+                            <div className={`lp-range-editor ${rangeError(range) ? 'invalid' : ''}`}>
+                              <input type="number" min="0" max="100" aria-label={`진도 ${progress} ${answer} LP 최솟값`} value={range.min} onChange={(event) => setRange(progress, result, answer, { ...range, min: Number(event.target.value) })} />
+                              <span>~</span>
+                              <input type="number" min="0" max="100" aria-label={`진도 ${progress} ${answer} LP 최댓값`} value={range.max} onChange={(event) => setRange(progress, result, answer, { ...range, max: Number(event.target.value) })} />
+                              <button type="button" aria-label={`진도 ${progress} ${answer} 범위 해제`} onClick={() => setRange(progress, result, answer, undefined)}><X size={13} /></button>
+                            </div>
+                          ) : (
+                            <button type="button" className="lp-add" onClick={() => setRange(progress, result, answer, { ...defaultRanges[result][answer] })}><Plus size={13} /> {answer} 범위 추가</button>
+                          )}
+                        </td>
+                      )
+                    })}
+                    <td className="row-state">
+                      {overlaps.length > 0 && <span className="state-badge error"><AlertTriangle size={13} /> {overlaps.map((overlap) => `${overlap.answer} ${withGwa(overlap.results.find((item) => item !== result) ?? '')} 겹침`).join(', ')}</span>}
+                      {overlaps.length === 0 && removed && <span className="state-badge removed">{view} 해제 · 저장 전</span>}
+                      {overlaps.length === 0 && !removed && changed && <span className="state-badge changed">변경 · 저장 전</span>}
+                    </td>
+                  </tr>
+                )
+              })}
+              {rows.length === 0 && <tr><td className="rule-list-empty" colSpan={4}>{view === '미설정' ? '미설정 진도번호가 없습니다. 모든 진도번호에 기준이 있습니다.' : `${view}로 설정된 진도번호가 없습니다. 위 일괄 입력으로 추가할 수 있습니다.`}</td></tr>}
             </tbody>
           </table>
+        </div>
+
+        <div className="rule-editor-footer">
+          <div>
+            {message
+              ? <span className={`operation-message ${message.tone}`}>{message.tone === 'success' ? <Check size={15} /> : message.tone === 'error' ? <AlertTriangle size={15} /> : <ShieldCheck size={15} />} {message.text}</span>
+              : <span>마지막 저장: {rulesSavedAt}</span>}
+          </div>
+          <div>
+            {changedCount > 0 && <span className="pending-count">저장 전 변경 {changedCount}건</span>}
+            <button type="button" className="operation-save-button" onClick={requestSave}><Save size={15} /> 기준 저장</button>
+          </div>
         </div>
       </section>
 
@@ -163,10 +359,11 @@ export function OperationRulePage() {
             <div className="operation-confirm-body">
               <span className="operation-confirm-icon"><Save size={20} /></span>
               <h2 id="operation-confirm-title">운영기준을 저장하시겠습니까?</h2>
-              <p>{existingSet ? '같은 범위에 저장된 기준을 지금 설정한 내용으로 바꿉니다.' : '이 범위의 기준이 새로 추가됩니다.'}</p>
+              <p>아래 진도번호의 기준이 변경됩니다.</p>
               <dl>
-                <div><dt>적용 범위</dt><dd>{context.subject} · {context.stage} · {context.progressFrom}~{context.progressTo}번</dd></div>
-                <div><dt>분기 기준</dt><dd>{draftRules.length}개 (사용 {draftRules.filter((rule) => rule.enabled).length}개)</dd></div>
+                {changedStages.map((item) => (
+                  <div key={`${item.subject}-${item.stage}`}><dt>{item.subject} {item.stage}단계</dt><dd>진도번호 {item.progresses.length}개 ({compressProgress(item.progresses)})</dd></div>
+                ))}
               </dl>
             </div>
             <div className="operation-confirm-actions">
