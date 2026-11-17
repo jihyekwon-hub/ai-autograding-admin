@@ -1,9 +1,10 @@
 import { Building2, CalendarDays, CheckCircle2, Clock3, FileCheck2, Files, Layers3, PencilLine, Search, UserCheck, WalletCards } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useAdminData } from '../contexts/adminStore'
 import { useReviewers } from '../contexts/reviewerStore'
 import { curriculumStages, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
+import { answerTypes, isUnset, ruleResults, stageKey, type AnswerType, type RuleResult } from '../data/operationRules'
 import { performanceData } from '../data/performance'
 import { reviewPerformanceRecords } from '../data/reviewPerformance'
 
@@ -11,15 +12,16 @@ const number = new Intl.NumberFormat('ko-KR')
 function PanelTitle({ icon, title, description }: { icon: ReactNode; title: string; description: string }) { return <div className="dashboard-panel-title"><span>{icon}</span><div><h2>{title}</h2><p>{description}</p></div></div> }
 
 export function DashboardPage() {
-  const { operation } = useAdminData(); const { reviewers } = useReviewers()
+  const { ruleSettings } = useAdminData(); const { reviewers } = useReviewers()
   const [subject, setSubject] = useState<Subject>('수학'); const [stage, setStage] = useState('A'); const [progress, setProgress] = useState(1)
   const [applied, setApplied] = useState({ subject: '수학' as Subject, stage: 'A', progress: 1 })
   const totals = performanceData.filter((row) => row.date === TODAY).reduce((sum, row) => ({ total: sum.total + row.total, auto: sum.auto + row.autoConfirmed, review: sum.review + row.reviewConfirmed, center: sum.center + row.gradingCenter }), { total: 0, auto: 0, review: 0, center: 0 })
   const allowance = reviewers.reduce((sum, item) => sum + item.expectedAllowance, 0); const autoRate = totals.total ? (totals.auto + totals.review) / totals.total * 100 : 0
-  const seed = subjects.indexOf(applied.subject) * 19 + curriculumStages[applied.subject].indexOf(applied.stage) * 7 + applied.progress
-  const savedApplies = operation.subject === applied.subject && operation.stage === applied.stage && applied.progress >= operation.progressFrom && applied.progress <= operation.progressTo
-  const autoMin = savedApplies ? operation.rules.find((rule) => rule.answer === '정답' && rule.result === '자동확정')?.minLp ?? 95 : 93 + seed % 5
-  const reviewMin = Math.max(80, autoMin - (4 + seed % 4)); const wrongReviewMin = 94 + seed % 4
+  // 운영기준 요약: 운영기준 설정에 저장된 과목·단계·진도번호의 처리결과별 LP 범위를 그대로 보여준다.
+  const appliedSetting = ruleSettings[stageKey(applied.subject, applied.stage)]?.[applied.progress]
+  const appliedUnset = isUnset(appliedSetting)
+  const rangeLabel = (result: RuleResult, answer: AnswerType) => { const range = appliedSetting?.[result]?.[answer]; return range ? `LP ${range.min}~${range.max}` : '해당 없음' }
+  const resultIcons: Record<RuleResult, ReactNode> = { 자동확정: <CheckCircle2 size={21}/>, 검수후확정: <UserCheck size={21}/>, 채점센터: <Building2 size={21}/> }
   const todayRecords = reviewPerformanceRecords.filter((item) => item.date === TODAY)
   const totalReviewVolume = reviewers.reduce((sum, item) => sum + item.assignedPages, 0)
   const reviewedPages = reviewers.reduce((sum, item) => sum + item.processedPages, 0)
@@ -43,7 +45,7 @@ export function DashboardPage() {
   return <div className="page dashboard-page">
     <div className="dashboard-heading"><div><p>AI 자동채점 관리</p><h1>대시보드</h1><span>자동채점 운영 현황과 주요 지표를 한눈에 확인합니다.</span></div><div className="dashboard-date"><CalendarDays size={16}/> 2026년 11월 16일 월요일</div></div>
     <h2 className="dashboard-section-label">주요 운영 지표</h2><section className="kpi-grid dashboard-kpi-five">{kpis.map(({ icon: Icon, ...item }) => <Link className="kpi-card clickable" to={item.to} key={item.label}><div className="kpi-icon"><Icon size={20}/></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.note}</small></div></Link>)}</section>
-    <section className="dashboard-panel standards-panel"><Link to="/standards"><PanelTitle icon={<FileCheck2 size={17}/>} title="운영기준 요약" description="선택한 과목·단계·진도번호의 자동채점 분기 기준" /></Link><div className="dashboard-filters"><strong>조회 조건</strong><label>과목<select value={subject} onChange={(event) => { const next = event.target.value as Subject; setSubject(next); setStage(curriculumStages[next][0]) }}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></label><label>단계<select value={stage} onChange={(event) => setStage(event.target.value)}>{curriculumStages[subject].map((item) => <option key={item}>{item}</option>)}</select></label><label>진도번호<select value={progress} onChange={(event) => setProgress(Number(event.target.value))}>{progressNumbers.map((item) => <option key={item}>{item}</option>)}</select></label><button type="button" onClick={() => setApplied({ subject, stage, progress })}><Search size={15}/> 조회</button></div><div className="standards-grid"><article><div><CheckCircle2 size={21}/><strong>자동확정</strong></div><dl><dt>정답</dt><dd>LP {autoMin} 이상</dd><dt>오답</dt><dd>해당 없음</dd></dl></article><article><div><UserCheck size={21}/><strong>검수후확정</strong></div><dl><dt>정답</dt><dd>LP {reviewMin}~{autoMin - 1}</dd><dt>오답</dt><dd>LP {wrongReviewMin} 이상</dd></dl></article><article><div><Building2 size={21}/><strong>채점센터</strong></div><dl><dt>정답</dt><dd>LP {reviewMin} 미만</dd><dt>오답</dt><dd>LP {wrongReviewMin} 미만</dd></dl></article></div></section>
+    <section className="dashboard-panel standards-panel"><Link to="/standards"><PanelTitle icon={<FileCheck2 size={17}/>} title="운영기준 요약" description="선택한 과목·단계·진도번호의 자동채점 분기 기준" /></Link><div className="dashboard-filters"><strong>조회 조건</strong><label>과목<select value={subject} onChange={(event) => { const next = event.target.value as Subject; setSubject(next); setStage(curriculumStages[next][0]) }}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></label><label>단계<select value={stage} onChange={(event) => setStage(event.target.value)}>{curriculumStages[subject].map((item) => <option key={item}>{item}</option>)}</select></label><label>진도번호<select value={progress} onChange={(event) => setProgress(Number(event.target.value))}>{progressNumbers.map((item) => <option key={item}>{item}</option>)}</select></label><button type="button" onClick={() => setApplied({ subject, stage, progress })}><Search size={15}/> 조회</button></div>{appliedUnset && <p className="dashboard-standards-unset">{applied.subject} {applied.stage}단계 진도번호 {applied.progress}은(는) 운영기준이 설정되지 않았습니다.</p>}<div className="standards-grid">{ruleResults.map((result) => <article key={result}><div>{resultIcons[result]}<strong>{result}</strong></div><dl>{answerTypes.map((answer) => <Fragment key={answer}><dt>{answer}</dt><dd>{rangeLabel(result, answer)}</dd></Fragment>)}</dl></article>)}</div></section>
     <section className="dashboard-panel performance-panel dashboard-review-status-panel"><Link className="dashboard-panel-link" to="/review-status"><PanelTitle icon={<Files size={17}/>} title="검수현황" description="금일 검수 진행 수준과 최근 실적을 확인합니다." /><div className="performance-summary dashboard-review-summary"><div><Clock3 size={18}/><span>금일 총 근무시간<strong>{Math.floor(workMinutes / 60)}시간 {workMinutes % 60}분</strong></span></div><div><Files size={18}/><span>금일 검수 건수<strong>{number.format(reviewedPages)}건</strong></span></div><div><PencilLine size={18}/><span>금일 수정 건수<strong>{number.format(correctionCount)}건</strong></span></div><div><WalletCards size={18}/><span>예상 수당<strong>₩{number.format(allowance)}</strong></span></div></div><div className="dashboard-review-progress"><div><span>오늘 검수 진행률</span><strong>{number.format(reviewedPages)}건 / {number.format(totalReviewVolume)}건 <em>{reviewProgress.toFixed(1)}%</em></strong></div><div className="dashboard-review-progress-track" role="progressbar" aria-label="오늘 검수 진행률" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(reviewProgress)}><i style={{ width: `${Math.min(reviewProgress, 100)}%` }}/></div><small>오늘 총 검수량(검수후확정 분량) 대비 현재까지 검수 완료된 건수</small></div><div className="dashboard-review-charts"><TrendChart data={recentTrend}/><ReviewerBars data={reviewerStats}/></div></Link></section>
   </div>
 }

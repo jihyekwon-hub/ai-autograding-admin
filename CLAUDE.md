@@ -30,7 +30,7 @@ src/
   App.tsx                 라우트 정의 (AdminLayout 하위)
   layouts/AdminLayout.tsx 사이드바 메뉴(navigation 배열) + 상단바
   contexts/               전역 상태 — Provider(.tsx)와 store(.ts: createContext + useXxx 훅) 분리
-    AdminDataProvider / adminStore     운영기준 스냅샷(operation), 이력(history, addHistory)
+    AdminDataProvider / adminStore     운영기준(ruleSettings: 과목|단계 → 진도번호 → 처리결과 → 정답/오답 LP 범위), 이력(history, addHistory)
     ReviewerProvider / reviewerStore   검수교사 목록(reviewers)
   data/                   mock 데이터와 도메인 타입
     curriculum.ts         과목·단계·진도번호(1~200), TODAY, MONTH_START
@@ -79,5 +79,6 @@ src/
 - 검수교사 추가/수정 모달에서 이름 미입력 검증 메시지가 표시되지 않는다(`message`가 범위 모달에서만 렌더링됨).
 - 신규 검수교사 ID(`TCH${reviewers.length + 1}`)가 삭제 후 추가 시 중복될 수 있다.
 - 검수현황의 일별/월별/기간별 탭과 [조회] 버튼은 동작하지 않는다(필터 즉시 적용).
-- 운영기준은 단일 과목·단계·진도 범위 스냅샷만 저장한다. Rule 순서 변경 기능이 없고 삭제 시 id가 재부여된다.
+- 운영기준 설정 화면의 편집 내용(draft)은 페이지 상태라, 저장하지 않고 다른 메뉴로 이동하면 사라진다(이탈 경고 없음).
+- 운영기준 검증은 처리결과 간 LP 겹침만 막는다. LP 0~100 중 어떤 처리결과에도 속하지 않는 누락 구간은 아직 검사하지 않는다.
 - 운영 정책 미결 사항은 `src/specs/overview.ts`의 `openIssues` 참고.
