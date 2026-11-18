@@ -12,6 +12,7 @@ export const dataDictionary: DictionaryEntry[] = [
   { category: 'Routing', code: 'AUTO_CONFIRM', display: '자동확정', definition: '운영기준을 통과해 별도 검수 없이 최종 결과로 확정되는 처리 경로.', status: '확정' },
   { category: 'Routing', code: 'REVIEW_CONFIRM', display: '검수후확정', definition: '검수교사 확인 후 최종 결과를 확정하는 처리 경로.', status: '확정' },
   { category: 'Routing', code: 'CENTER', display: '채점센터', definition: '기존 채점센터 또는 별도 수동 처리 시스템으로 이관되는 경로.', status: '개발 확인 필요' },
+  { category: '운영기준', code: 'UNSET', display: '미설정', definition: '과목·단계·진도번호에 자동확정·검수후확정·채점센터 중 어떤 처리결과의 LP 범위도 없는 상태. 운영기준 설정 화면에서 경고 아이콘과 별도 목록으로 표시한다.', status: '협의 필요' },
   { category: '검수 수정', code: 'modified', display: '수정 건', definition: 'AI 최초 정오답 판정과 검수교사의 최종 정오답 판정이 다른 문항.', status: '확정' },
 ]
 
@@ -19,7 +20,7 @@ export const referenceEntities: ReferenceEntity[] = [
   { name: 'SUBMISSION', description: '회원 학습지 제출 Reference Entity', fields: ['submissionId', 'memberId', 'subject', 'level', 'progressNo', 'submittedAt'] },
   { name: 'AI_GRADING_RESULT', description: 'AI 문항별 채점 결과 Reference Entity', fields: ['submissionId', 'questionNo', 'aiResult', 'lp', 'recognizedValue'] },
   { name: 'ROUTING_RESULT', description: '운영기준 적용 결과 Reference Entity', fields: ['submissionId', 'routingStatus', 'appliedRuleId', 'routedAt'] },
-  { name: 'OPERATING_RULE', description: '과목·단계·진도범위별 분기 기준 Reference Entity', fields: ['ruleId', 'subject', 'level', 'progressStart', 'progressEnd', 'gradingResult', 'lpMin', 'lpMax', 'routingResult', 'enabled', 'updatedAt', 'updatedBy'] },
+  { name: 'OPERATING_RULE', description: '과목·단계·진도번호별로 처리결과(자동확정·검수후확정·채점센터)마다 정답/오답 LP 범위를 저장하는 분기 기준 Reference Entity. 한 진도번호에 처리결과·정오답 조합별 최대 6개 범위가 존재할 수 있다.', fields: ['subject', 'level', 'progressNo', 'routingResult', 'aiResult', 'lpMin', 'lpMax', 'updatedAt', 'updatedBy'] },
   { name: 'REVIEWER', description: '검수교사 Master Reference Entity', fields: ['reviewerId', 'reviewerName', 'workingHours', 'status'] },
   { name: 'REVIEW_ASSIGNMENT', description: '검수교사별 복수 담당 범위와 물량 Reference Entity', fields: ['assignmentId', 'reviewerId', 'subject', 'level', 'progressStart', 'progressEnd', 'allocatedSheets'] },
   { name: 'REVIEW_RESULT', description: '문항별 검수 확정 결과 Reference Entity', fields: ['submissionId', 'questionNo', 'reviewerId', 'aiResult', 'finalResult', 'modified', 'confirmedAt'] },
