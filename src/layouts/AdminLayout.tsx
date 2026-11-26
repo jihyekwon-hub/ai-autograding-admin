@@ -20,7 +20,7 @@ const navigation = [
   { to: '/performance', label: '실적관리', icon: BarChart3 },
   { to: '/standards', label: '운영기준 설정', icon: SlidersHorizontal },
   { to: '/reviewers', label: '검수교사 관리', icon: UserRoundCheck },
-  { to: '/review-status', label: '검수현황', icon: ClipboardCheck },
+  { to: '/review-status', label: '수정내역', icon: ClipboardCheck },
   { to: '/history', label: '이력관리', icon: History },
 ]
 

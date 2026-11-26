@@ -1,7 +1,8 @@
-import { AlertCircle, AlertTriangle, Check, Copy, ListChecks, Plus, Save, ShieldCheck, X } from 'lucide-react'
+import { AlertCircle, AlertTriangle, CalendarDays, Check, Copy, ListChecks, Plus, Save, Search, ShieldCheck, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useAdminData } from '../contexts/adminStore'
-import { curriculumStages, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
+import { curriculumStages, MONTH_START, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
+import { getProgressResult, type ProgressResult } from '../data/progressResults'
 import {
   answerTypes,
   cleanSetting,
@@ -23,6 +24,13 @@ import {
 type ViewKey = RuleResult | '미설정'
 const viewKeys: ViewKey[] = [...ruleResults, '미설정']
 
+// 이 화면에서는 처리결과를 '배정' 명칭으로 표시한다. (데이터 값은 자동확정/검수후확정/채점센터 유지)
+const resultLabels: Record<RuleResult, string> = { 자동확정: '자동배정', 검수후확정: '검수배정', 채점센터: '채점배정' }
+const viewLabel = (item: ViewKey) => item === '미설정' ? item : resultLabels[item]
+const number = new Intl.NumberFormat('ko-KR')
+type Period = { start: string; end: string }
+const initialPeriod: Period = { start: MONTH_START, end: TODAY }
+
 // 범위를 새로 추가할 때 처리 결과별 기본 LP 값
 const defaultRanges: Record<RuleResult, Record<AnswerType, LpRange>> = {
   자동확정: { 정답: { min: 95, max: 100 }, 오답: { min: 98, max: 100 } },
@@ -36,7 +44,7 @@ const emptyStage: StageSettings = {}
 
 function stageSummary(stageSettings: StageSettings, progresses: number[]) {
   const unset = progresses.filter((progress) => isUnset(stageSettings[progress])).length
-  const counts = ruleResults.map((result) => `${result} ${progresses.filter((progress) => hasResult(stageSettings[progress], result)).length}`).join(' · ')
+  const counts = ruleResults.map((result) => `${resultLabels[result]} ${progresses.filter((progress) => hasResult(stageSettings[progress], result)).length}`).join(' · ')
   return `미설정 ${unset}개 / ${counts}`
 }
 
@@ -44,7 +52,7 @@ function settingSummary(setting: ProgressSetting | undefined) {
   if (isUnset(setting)) return '미설정'
   return ruleResults
     .filter((result) => hasResult(setting, result))
-    .map((result) => `${result} ${answerTypes.filter((answer) => setting?.[result]?.[answer]).map((answer) => `${answer} ${setting?.[result]?.[answer]?.min}~${setting?.[result]?.[answer]?.max}`).join(', ')}`)
+    .map((result) => `${resultLabels[result]} ${answerTypes.filter((answer) => setting?.[result]?.[answer]).map((answer) => `${answer} ${setting?.[result]?.[answer]?.min}~${setting?.[result]?.[answer]?.max}`).join(', ')}`)
     .join(' · ')
 }
 
@@ -67,6 +75,9 @@ export function OperationRulePage() {
   const [bulk, setBulk] = useState({ from: 1, to: 30, answer: '정답' as AnswerType, min: 95, max: 100, source: 0 })
   const [message, setMessage] = useState<{ tone: 'error' | 'success' | 'info'; text: string } | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [periodDraft, setPeriodDraft] = useState<Period>(initialPeriod)
+  const [period, setPeriod] = useState<Period>(initialPeriod)
+  const [periodError, setPeriodError] = useState('')
 
   const key = stageKey(subject, stage)
   const savedStage = ruleSettings[key] ?? emptyStage
@@ -87,6 +98,24 @@ export function OperationRulePage() {
   const rows = useMemo(() => progressNumbers.filter((progress) => view === '미설정'
     ? isUnset(draftStage[progress]) || isUnset(savedStage[progress])
     : hasResult(draftStage[progress], view) || hasResult(savedStage[progress], view)), [draftStage, savedStage, view])
+
+  // 진도번호별 처리결과(완료 장 수)와 수정 장 수: 저장된 기준에 해당 배정이 있는 진도번호만 집계한다.
+  const results = useMemo(() => {
+    if (view === '미설정') return new Map<number, ProgressResult>()
+    const result = view
+    return new Map(rows
+      .filter((progress) => hasResult(savedStage[progress], result))
+      .map((progress): [number, ProgressResult] => [progress, getProgressResult(subject, stage, progress, result, period.start, period.end)]))
+  }, [rows, savedStage, view, subject, stage, period])
+  const totalCompleted = [...results.values()].reduce((sum, item) => sum + item.completed, 0)
+  const totalCorrected = [...results.values()].reduce((sum, item) => sum + item.corrected, 0)
+  const correctionRate = (completed: number, corrected: number) => completed ? `${(corrected / completed * 100).toFixed(1)}%` : '0.0%'
+
+  const applyPeriod = () => {
+    if (!periodDraft.start || !periodDraft.end || periodDraft.start > periodDraft.end) { setPeriodError('시작일은 종료일보다 늦을 수 없습니다.'); return }
+    setPeriodError('')
+    setPeriod({ ...periodDraft })
+  }
 
   const configuredProgresses = useMemo(() => progressNumbers.filter((progress) => !isUnset(draftStage[progress])), [draftStage])
 
@@ -161,7 +190,7 @@ export function OperationRulePage() {
       const current = stageSettings[progress] ?? {}
       return [progress, cleanSetting({ ...current, [result]: { ...current[result], [bulk.answer]: range } })]
     })) }))
-    setMessage({ tone: 'info', text: `진도번호 ${compressProgress(targets)}의 ${view} ${bulk.answer} LP 범위를 변경했습니다(${range.min}~${range.max}). 저장해야 반영됩니다.` })
+    setMessage({ tone: 'info', text: `진도번호 ${compressProgress(targets)}의 ${resultLabels[result]} ${bulk.answer} LP 범위를 변경했습니다(${range.min}~${range.max}). 저장해야 반영됩니다.` })
   }
 
   const clearBulk = () => {
@@ -173,7 +202,7 @@ export function OperationRulePage() {
       const current = stageSettings[progress] ?? {}
       return [progress, cleanSetting({ ...current, [result]: { ...current[result], [bulk.answer]: undefined } })]
     })) }))
-    setMessage({ tone: 'info', text: `진도번호 ${from}~${to}의 ${view} ${bulk.answer} 범위를 해제했습니다. 저장해야 반영됩니다.` })
+    setMessage({ tone: 'info', text: `진도번호 ${from}~${to}의 ${resultLabels[result]} ${bulk.answer} 범위를 해제했습니다. 저장해야 반영됩니다.` })
   }
 
   const requestSave = () => {
@@ -184,7 +213,7 @@ export function OperationRulePage() {
         const setting = draft[stageKey(item.subject, item.stage)]?.[progress] ?? {}
         const invalid = ruleResults.some((result) => answerTypes.some((answer) => { const range = setting[result]?.[answer]; return range ? rangeError(range) : false }))
         if (invalid) problems.push(`${item.subject} ${item.stage} 진도 ${progress}: LP 범위 오류(0~100, 최솟값 ≤ 최댓값)`)
-        findOverlaps(setting).forEach((overlap) => problems.push(`${item.subject} ${item.stage} 진도 ${progress}: ${overlap.answer} LP 범위가 ${overlap.results.join('·')}에서 겹침`))
+        findOverlaps(setting).forEach((overlap) => problems.push(`${item.subject} ${item.stage} 진도 ${progress}: ${overlap.answer} LP 범위가 ${overlap.results.map((result) => resultLabels[result]).join('·')}에서 겹침`))
       })
     })
     if (problems.length) {
@@ -219,7 +248,9 @@ export function OperationRulePage() {
     setMessage({ tone: 'success', text: '저장된 기준이 화면에 반영되었습니다.' })
   }
 
-  const viewTitle = view === '미설정' ? '기준이 없는 진도번호' : `${view} LP 범위`
+  const viewTitle = view === '미설정' ? '기준이 없는 진도번호' : `${resultLabels[view]} LP 범위`
+  const isReviewView = view === '검수후확정'
+  const columnCount = view === '미설정' ? 3 : isReviewView ? 6 : 5
 
   return (
     <div className="page operation-rule-page">
@@ -234,7 +265,7 @@ export function OperationRulePage() {
             <div className="operation-view-tabs" role="tablist" aria-label="처리결과 선택">
               {viewKeys.map((item) => (
                 <button key={item} type="button" role="tab" aria-selected={view === item} className={`view-${item} ${view === item ? 'active' : ''}`} onClick={() => changeView(item)}>
-                  {item}<span>{counts[item]}</span>
+                  {viewLabel(item)}<span>{counts[item]}</span>
                 </button>
               ))}
             </div>
@@ -253,9 +284,26 @@ export function OperationRulePage() {
         </div>
       </section>
 
+      <section className="operation-period-card" aria-label="처리결과 조회기간">
+        <strong><CalendarDays size={15} /> 처리결과 조회기간</strong>
+        <label>시작일<input type="date" value={periodDraft.start} max={TODAY} onChange={(event) => setPeriodDraft({ ...periodDraft, start: event.target.value })} /></label>
+        <span>~</span>
+        <label>종료일<input type="date" value={periodDraft.end} min={periodDraft.start} max={TODAY} onChange={(event) => setPeriodDraft({ ...periodDraft, end: event.target.value })} /></label>
+        <button type="button" onClick={applyPeriod}><Search size={14} /> 조회</button>
+        {periodError
+          ? <em className="operation-period-error">{periodError}</em>
+          : <small>{period.start} ~ {period.end} · 회원 발송까지 완료된 장 수를 실시간으로 집계합니다. 검수배정은 검수교사가 수정 후 확정한 비율(수정율)도 함께 표시합니다.</small>}
+      </section>
+
       <section className="operation-panel rule-list-panel">
         <div className="operation-panel-heading">
           <div><ListChecks size={18} /><span><strong>{subject} {stage}단계 · {viewTitle}</strong><small>진도번호 {rows.length}개{view !== '미설정' && ` · 같은 정오답 안에서 처리결과별 LP 범위는 겹칠 수 없습니다.`}</small></span></div>
+          {view !== '미설정' && (
+            <div className="rule-result-total">
+              <span>처리결과 합계<b>{number.format(totalCompleted)}장</b></span>
+              {isReviewView && <span>수정율<b>{correctionRate(totalCompleted, totalCorrected)}</b></span>}
+            </div>
+          )}
         </div>
 
         <div className="rule-bulk-bar">
@@ -288,7 +336,7 @@ export function OperationRulePage() {
             <thead>
               {view === '미설정'
                 ? <tr><th>진도번호</th><th>상태</th><th>설정 내용</th></tr>
-                : <tr><th>진도번호</th><th>정답 LP 범위</th><th>오답 LP 범위</th><th>상태</th></tr>}
+                : <tr><th>진도번호</th><th>정답 LP 범위</th><th>오답 LP 범위</th><th className="result-col">처리결과</th>{isReviewView && <th className="result-col">수정율</th>}<th>상태</th></tr>}
             </thead>
             <tbody>
               {rows.map((progress) => {
@@ -307,6 +355,7 @@ export function OperationRulePage() {
                 const result = view
                 const overlaps = findOverlaps(setting ?? {}).filter((overlap) => overlap.results.includes(result))
                 const removed = !hasResult(setting, result)
+                const progressResult = results.get(progress)
                 return (
                   <tr key={progress} className={`${changed ? 'is-changed' : ''} ${overlaps.length ? 'has-error' : ''}`}>
                     <td><b>{progress}</b></td>
@@ -327,15 +376,17 @@ export function OperationRulePage() {
                         </td>
                       )
                     })}
+                    <td className="result-col">{progressResult ? <b>{number.format(progressResult.completed)}장</b> : <span className="result-empty">-</span>}</td>
+                    {isReviewView && <td className="result-col">{progressResult ? <><b>{correctionRate(progressResult.completed, progressResult.corrected)}</b><small>{number.format(progressResult.corrected)}장 수정</small></> : <span className="result-empty">-</span>}</td>}
                     <td className="row-state">
-                      {overlaps.length > 0 && <span className="state-badge error"><AlertTriangle size={13} /> {overlaps.map((overlap) => `${overlap.answer} ${withGwa(overlap.results.find((item) => item !== result) ?? '')} 겹침`).join(', ')}</span>}
-                      {overlaps.length === 0 && removed && <span className="state-badge removed">{view} 해제 · 저장 전</span>}
+                      {overlaps.length > 0 && <span className="state-badge error"><AlertTriangle size={13} /> {overlaps.map((overlap) => { const other = overlap.results.find((item) => item !== result); return `${overlap.answer} ${other ? withGwa(resultLabels[other]) : ''} 겹침` }).join(', ')}</span>}
+                      {overlaps.length === 0 && removed && <span className="state-badge removed">{resultLabels[result]} 해제 · 저장 전</span>}
                       {overlaps.length === 0 && !removed && changed && <span className="state-badge changed">변경 · 저장 전</span>}
                     </td>
                   </tr>
                 )
               })}
-              {rows.length === 0 && <tr><td className="rule-list-empty" colSpan={4}>{view === '미설정' ? '미설정 진도번호가 없습니다. 모든 진도번호에 기준이 있습니다.' : `${view}로 설정된 진도번호가 없습니다. 위 일괄 입력으로 추가할 수 있습니다.`}</td></tr>}
+              {rows.length === 0 && <tr><td className="rule-list-empty" colSpan={columnCount}>{view === '미설정' ? '미설정 진도번호가 없습니다. 모든 진도번호에 기준이 있습니다.' : `${resultLabels[view]}으로 설정된 진도번호가 없습니다. 위 일괄 입력으로 추가할 수 있습니다.`}</td></tr>}
             </tbody>
           </table>
         </div>
