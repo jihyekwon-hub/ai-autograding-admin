@@ -15,6 +15,10 @@ pnpm run lint      # eslint .
 
 테스트 프레임워크는 아직 없다. 변경 후에는 최소한 `pnpm run build`와 `pnpm run lint`가 통과해야 한다.
 
+사용자 PC는 회사 보안 규정상 Node.js를 설치할 수 없다. Claude Code는 로컬에서 Node/pnpm을 설치·실행하지 않고, 브랜치를 push한 뒤 Vercel Preview 빌드(`tsc -b && vite build`)와 Preview URL 화면으로 검증한다(lint는 로컬에서 실행되지 않음).
+
+운영기준 설정 화면은 처리결과를 자동배정/검수배정/채점배정으로 표기하지만, 데이터 값(`RuleResult`)과 다른 화면은 자동확정/검수후확정/채점센터를 유지한다. 진도번호별 처리결과·수정율 mock은 `data/progressResults.ts`.
+
 ## 기술 스택
 
 - React 19 + TypeScript 5.9 (strict, `noUnusedLocals`/`noUnusedParameters`)
@@ -44,11 +48,11 @@ src/
 | 실적관리 | `/performance` | PerformancePage | performanceSpec |
 | 운영기준 설정 | `/standards` | OperationRulePage | standardsSpec |
 | 검수교사 관리 | `/reviewers` | ReviewerManagementPage | reviewersSpec |
-| 검수현황 | `/review-status` | ReviewStatusPage | reviewStatusSpec |
+| 수정내역 | `/review-status` | ReviewStatusPage | reviewStatusSpec |
 | 이력관리 | `/history` | HistoryPage | historySpec |
 | 화면설계서 (개발 Reference) | `/screen-spec` | ScreenSpecPage | specs/index.ts |
 
-데이터 흐름: 운영기준 저장·검수교사 변경 시 Context 상태를 갱신하고 `addHistory`로 이력을 남긴다 → 대시보드·검수현황·이력관리에 반영된다. 새 변경 기능을 추가하면 이력 기록도 함께 추가한다.
+데이터 흐름: 운영기준 저장·검수교사 변경 시 Context 상태를 갱신하고 `addHistory`로 이력을 남긴다 → 이력관리 등에 반영된다. 새 변경 기능을 추가하면 이력 기록도 함께 추가한다.
 
 ## 반드시 지킬 규칙
 
@@ -78,7 +82,6 @@ src/
 - `src/data/mockData.ts`, `src/types/dashboard.ts`, `src/pages/PlaceholderPage.tsx`는 현재 어디서도 사용하지 않는다(README의 mockData 설명은 오래된 내용).
 - 검수교사 추가/수정 모달에서 이름 미입력 검증 메시지가 표시되지 않는다(`message`가 범위 모달에서만 렌더링됨).
 - 신규 검수교사 ID(`TCH${reviewers.length + 1}`)가 삭제 후 추가 시 중복될 수 있다.
-- 검수현황의 일별/월별/기간별 탭과 [조회] 버튼은 동작하지 않는다(필터 즉시 적용).
 - 운영기준 설정 화면의 편집 내용(draft)은 페이지 상태라, 저장하지 않고 다른 메뉴로 이동하면 사라진다(이탈 경고 없음).
 - 운영기준 검증은 처리결과 간 LP 겹침만 막는다. LP 0~100 중 어떤 처리결과에도 속하지 않는 누락 구간은 아직 검사하지 않는다.
 - 운영 정책 미결 사항은 `src/specs/overview.ts`의 `openIssues` 참고.

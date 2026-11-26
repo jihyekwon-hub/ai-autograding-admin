@@ -9,10 +9,12 @@ export const dataDictionary: DictionaryEntry[] = [
   { category: 'AI 판정', code: 'CORRECT', display: '정답', definition: 'AI가 답안을 정답으로 판정한 상태.', status: '확정' },
   { category: 'AI 판정', code: 'INCORRECT', display: '오답', definition: 'AI가 답안을 오답으로 판정한 상태.', status: '확정' },
   { category: 'AI 신뢰도', code: 'lp', display: 'LP 0~100', definition: 'AI 판정 신뢰도 계열 값. 정확한 모델 의미·산출식·보정 여부는 AI 개발팀 확인이 필요하다.', status: '개발 확인 필요' },
-  { category: 'Routing', code: 'AUTO_CONFIRM', display: '자동확정', definition: '운영기준을 통과해 별도 검수 없이 최종 결과로 확정되는 처리 경로.', status: '확정' },
-  { category: 'Routing', code: 'REVIEW_CONFIRM', display: '검수후확정', definition: '검수교사 확인 후 최종 결과를 확정하는 처리 경로.', status: '확정' },
-  { category: 'Routing', code: 'CENTER', display: '채점센터', definition: '기존 채점센터 또는 별도 수동 처리 시스템으로 이관되는 경로.', status: '개발 확인 필요' },
+  { category: 'Routing', code: 'AUTO_CONFIRM', display: '자동확정', definition: '운영기준을 통과해 별도 검수 없이 최종 결과로 확정되는 처리 경로. 운영기준 설정 화면에서는 "자동배정"으로 표기.', status: '확정' },
+  { category: 'Routing', code: 'REVIEW_CONFIRM', display: '검수후확정', definition: '검수교사 확인 후 최종 결과를 확정하는 처리 경로. 운영기준 설정 화면에서는 "검수배정"으로 표기.', status: '확정' },
+  { category: 'Routing', code: 'CENTER', display: '채점센터', definition: '기존 채점센터 또는 별도 수동 처리 시스템으로 이관되는 경로. 운영기준 설정 화면에서는 "채점배정"으로 표기.', status: '개발 확인 필요' },
   { category: '운영기준', code: 'UNSET', display: '미설정', definition: '과목·단계·진도번호에 자동확정·검수후확정·채점센터 중 어떤 처리결과의 LP 범위도 없는 상태. 운영기준 설정 화면에서 경고 아이콘과 별도 목록으로 표시한다.', status: '협의 필요' },
+  { category: '운영기준', code: 'completed', display: '처리결과', definition: '진도번호·배정별로 회원 발송까지 모든 작업이 완료된 장 수. 운영기준 설정 화면에서 조회기간 기준으로 실시간 집계.', status: '개발 확인 필요' },
+  { category: '운영기준', code: 'correctionRate', display: '수정율', definition: '검수배정 처리결과 중 검수교사가 AI 판정을 수정한 뒤 확정한 장 수의 비율(%).', status: '협의 필요' },
   { category: '검수 수정', code: 'modified', display: '수정 건', definition: 'AI 최초 정오답 판정과 검수교사의 최종 정오답 판정이 다른 문항.', status: '확정' },
 ]
 
