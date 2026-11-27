@@ -169,8 +169,10 @@ export function DashboardPage() {
 
 // 과목·단계·진도번호 오류율.
 // - 진도번호 오류율: 기준설정 화면 처리결과(progressResults)와 같은 값
-// - 장 수: 대시보드 실적(performanceData)의 단계별 검수후확정을 진도번호 처리량 비중으로 나눈 값
-//   (과목·단계 합계가 위 검수후확정 박스와 맞도록). 실제 서비스는 같은 집계 API에서 내려받는다.
+// - 과목·단계 장 수: 대시보드 실적(performanceData)의 단계별 검수후확정에 단계 오류율을 곱한 값
+//   (과목·단계 합계가 위 검수후확정 박스와 맞도록)
+// - 진도번호 장 수: 기준설정 화면 처리결과와 같은 값(같은 기간이면 숫자가 그대로 맞는다)
+// 프로토타입은 두 mock의 장 수 규모가 다르다. 실제 서비스는 같은 집계 API에서 내려받는다.
 function buildSubjectErrors(ruleSettings: RuleSettings, month: string): SubjectError[] {
   const start = `${month}-01`
   const end = monthEnd(month)
@@ -188,10 +190,9 @@ function buildSubjectErrors(ruleSettings: RuleSettings, month: string): SubjectE
       const rawCorrected = raw.reduce((sum, item) => sum + item.result.corrected, 0)
       const review = monthRows.filter((row) => row.subject === subject && row.stage === stage).reduce((sum, row) => sum + row.reviewConfirmed, 0)
       const progresses = raw.filter((item) => item.result.review > 0).map(({ progress, result }): ProgressError => {
-        const share = review * result.review / rawReview
         const rate = roundRate(percent(result.corrected, result.review))
         if (rate > ERROR_RATE_THRESHOLD) overCount += 1
-        return { stage, progress, review: Math.round(share), corrected: Math.round(share * result.corrected / result.review), rate }
+        return { stage, progress, review: result.review, corrected: result.corrected, rate }
       })
       const corrected = rawReview ? Math.round(review * rawCorrected / rawReview) : 0
       return { stage, review, corrected, rate: roundRate(percent(corrected, review)), progresses }
@@ -259,7 +260,7 @@ function ErrorDetailModal({ detail, month, onClose }: { detail: SubjectError; mo
       </section>
       <section className="dashboard-error-modal-progress">
         <div className="dashboard-error-modal-progress-head">
-          <h3>오류율 높은 진도번호 <small>상위 {TOP_PROGRESS_COUNT}개 · 오류율 높은 순</small></h3>
+          <h3>오류율 높은 진도번호 <small>상위 {TOP_PROGRESS_COUNT}개 · 오류율 높은 순 · 기준설정 처리결과 기준</small></h3>
           <label>단계<select value={stageFilter} onChange={(event) => setStageFilter(event.target.value)}><option>전체</option>{detail.stages.map((item) => <option key={item.stage}>{item.stage}</option>)}</select></label>
         </div>
         <div className="dashboard-error-modal-table">
