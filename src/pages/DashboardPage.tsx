@@ -1,8 +1,9 @@
-import { AlertTriangle, Building2, CheckCircle2, Layers3, PencilLine, ShieldCheck, Sparkles, UserCheck, type LucideIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { AlertTriangle, ArrowRight, Building2, CheckCircle2, ChevronRight, Layers3, PencilLine, ShieldCheck, Sparkles, UserCheck, X, type LucideIcon } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAdminData } from '../contexts/adminStore'
 import { curriculumStages, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
-import { effectiveResult, stageKey } from '../data/operationRules'
+import { effectiveResult, stageKey, type RuleSettings, type StandardsLinkState } from '../data/operationRules'
 import { ERROR_RATE_THRESHOLD, getProgressResult } from '../data/progressResults'
 import { performanceData } from '../data/performance'
 
@@ -12,11 +13,21 @@ const currentMonth = TODAY.slice(0, 7)
 const monthOptions = Array.from({ length: Number(TODAY.slice(5, 7)) }, (_, index) => `${TODAY.slice(0, 4)}-${String(index + 1).padStart(2, '0')}`)
 const monthLabel = (month: string) => `${Number(month.slice(0, 4))}년 ${Number(month.slice(5, 7))}월`
 const percent = (value: number, base: number) => base ? value / base * 100 : 0
+// 화면에 보이는 값(소수 첫째 자리)과 판정이 어긋나지 않도록 반올림한 값으로 비교한다.
+const roundRate = (value: number) => Math.round(value * 10) / 10
+/** 기준월의 마지막 날(기준일이 속한 달은 기준일까지) */
+const monthEnd = (month: string) => {
+  const last = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).toISOString().slice(0, 10)
+  return last > TODAY ? TODAY : last
+}
 
 type Tone = 'total' | 'ai' | 'center' | 'auto' | 'review'
 /** share: 기준 대비 비율(%), sum: 아래 두 박스의 합계 박스 여부 */
 type Kpi = { label: string; value: number; share: number; icon: LucideIcon; tone: Tone; sum?: boolean }
 type Slice = { label: string; value: number; tone: Tone }
+type ProgressError = { stage: string; progress: number; review: number; corrected: number; rate: number }
+type StageError = { stage: string; review: number; corrected: number; rate: number; progresses: ProgressError[] }
+type SubjectError = { subject: Subject; review: number; corrected: number; rate: number; stages: StageError[]; overCount: number; reviewProgresses: number }
 // 과목별 처리 구성의 표시 순서(기준설정 화면의 과목별 배정 비중과 같은 순서)
 const subjectOrder: Subject[] = ['국어', '수학', '영어', '과학'].filter((item): item is Subject => (subjects as readonly string[]).includes(item))
 
@@ -36,35 +47,24 @@ export function DashboardPage() {
   const subjectRows = subjectOrder.map((subject) => {
     const sums = performanceData
       .filter((row) => row.subject === subject && row.date.startsWith(selectedMonth) && row.date <= TODAY)
-      .reduce((sum, row) => ({ auto: sum.auto + row.autoConfirmed, review: sum.review + row.reviewConfirmed, center: sum.center + row.gradingCenter, corrected: sum.corrected + row.corrected }), { auto: 0, review: 0, center: 0, corrected: 0 })
+      .reduce((sum, row) => ({ auto: sum.auto + row.autoConfirmed, review: sum.review + row.reviewConfirmed, center: sum.center + row.gradingCenter }), { auto: 0, review: 0, center: 0 })
     return { subject, ...sums, total: sums.auto + sums.review + sums.center }
   })
 
   // 오류율 = 검수후확정 중 검수교사가 수정한 장 수 / 검수후확정 × 100
-  const monthCorrected = subjectRows.reduce((sum, row) => sum + row.corrected, 0)
-  const monthReview = subjectRows.reduce((sum, row) => sum + row.review, 0)
-  const monthErrorRate = Math.round(percent(monthCorrected, monthReview) * 10) / 10
-  // 화면에 보이는 값(소수 첫째 자리)과 판정이 어긋나지 않도록 반올림한 값으로 비교한다.
-  const roundRate = (value: number) => Math.round(value * 10) / 10
-  const subjectErrors = subjectRows.map((row) => ({ subject: row.subject, rate: roundRate(percent(row.corrected, row.review)), corrected: row.corrected, review: row.review }))
+  // 과목·단계·진도번호 오류율을 한 번에 계산해 과목 막대와 상세 팝업이 같은 값을 쓰게 한다.
+  const subjectErrors = useMemo(() => buildSubjectErrors(ruleSettings, selectedMonth), [ruleSettings, selectedMonth])
+  const [detailSubject, setDetailSubject] = useState<Subject | null>(null)
+  const detail = subjectErrors.find((item) => item.subject === detailSubject)
+  const monthCorrected = subjectErrors.reduce((sum, item) => sum + item.corrected, 0)
+  const monthReview = subjectErrors.reduce((sum, item) => sum + item.review, 0)
+  const monthErrorRate = roundRate(percent(monthCorrected, monthReview))
   const worstSubject = subjectErrors.reduce((worst, item) => item.rate > worst.rate ? item : worst, subjectErrors[0])
   // 기준 초과 진도번호: 저장된 기준이 검수배정인 진도번호 중 기준월 오류율이 관리 기준을 넘는 수
-  const overThreshold = useMemo(() => {
-    const start = `${selectedMonth}-01`
-    const end = `${selectedMonth}-31`
-    let count = 0
-    let reviewProgresses = 0
-    subjects.forEach((subject) => curriculumStages[subject].forEach((stage) => {
-      const stageSettings = ruleSettings[stageKey(subject, stage)] ?? {}
-      progressNumbers.forEach((progress) => {
-        if (effectiveResult(stageSettings[progress]) !== '검수후확정') return
-        reviewProgresses += 1
-        const result = getProgressResult(subject, stage, progress, stageSettings[progress], start, end)
-        if (result.review && result.corrected / result.review * 100 > ERROR_RATE_THRESHOLD) count += 1
-      })
-    }))
-    return { count, reviewProgresses }
-  }, [ruleSettings, selectedMonth])
+  const overThreshold = {
+    count: subjectErrors.reduce((sum, item) => sum + item.overCount, 0),
+    reviewProgresses: subjectErrors.reduce((sum, item) => sum + item.reviewProgresses, 0),
+  }
   const errorOk = monthErrorRate <= ERROR_RATE_THRESHOLD
   const barMax = Math.max(ERROR_RATE_THRESHOLD * 1.6, ...subjectErrors.map((item) => item.rate))
 
@@ -128,16 +128,16 @@ export function DashboardPage() {
         </div>
       </div>
       <div className="dashboard-error-subjects">
-        <div className="dashboard-error-subjects-title">과목별 오류율 <small>점선 = 관리 기준 {ERROR_RATE_THRESHOLD.toFixed(1)}%</small></div>
+        <div className="dashboard-error-subjects-title">과목별 오류율 <small>점선 = 관리 기준 {ERROR_RATE_THRESHOLD.toFixed(1)}% · 막대를 누르면 단계·진도번호별 상세</small></div>
         {subjectErrors.map((item) => (
-          <div className="dashboard-error-row" key={item.subject}>
+          <button type="button" className="dashboard-error-row" key={item.subject} onClick={() => setDetailSubject(item.subject)} aria-label={`${item.subject} 오류율 상세 보기`}>
             <strong>{item.subject}</strong>
             <div className="dashboard-error-track" role="img" aria-label={`${item.subject} 오류율 ${item.rate.toFixed(1)}%`}>
               <i className={item.rate > ERROR_RATE_THRESHOLD ? 'over' : ''} style={{ width: `${item.rate / barMax * 100}%` }}/>
               <b style={{ left: `${ERROR_RATE_THRESHOLD / barMax * 100}%` }}/>
             </div>
-            <span className={`dashboard-error-value ${item.rate > ERROR_RATE_THRESHOLD ? 'over' : ''}`}>수정 {number.format(item.corrected)}장 · <b>{item.rate.toFixed(1)}%</b></span>
-          </div>
+            <span className={`dashboard-error-value ${item.rate > ERROR_RATE_THRESHOLD ? 'over' : ''}`}>수정 {number.format(item.corrected)}장 · <b>{item.rate.toFixed(1)}%</b><ChevronRight size={15}/></span>
+          </button>
         ))}
       </div>
     </section>
@@ -163,6 +163,128 @@ export function DashboardPage() {
         ))}
       </div>
     </section>
+    {detail && <ErrorDetailModal key={`${detail.subject}-${selectedMonth}`} detail={detail} month={selectedMonth} onClose={() => setDetailSubject(null)}/>}
+  </div>
+}
+
+// 과목·단계·진도번호 오류율.
+// - 진도번호 오류율: 기준설정 화면 처리결과(progressResults)와 같은 값
+// - 장 수: 대시보드 실적(performanceData)의 단계별 검수후확정을 진도번호 처리량 비중으로 나눈 값
+//   (과목·단계 합계가 위 검수후확정 박스와 맞도록). 실제 서비스는 같은 집계 API에서 내려받는다.
+function buildSubjectErrors(ruleSettings: RuleSettings, month: string): SubjectError[] {
+  const start = `${month}-01`
+  const end = monthEnd(month)
+  const monthRows = performanceData.filter((row) => row.date >= start && row.date <= end)
+  return subjectOrder.map((subject) => {
+    let overCount = 0
+    let reviewProgresses = 0
+    const stages = curriculumStages[subject].map((stage): StageError => {
+      const stageSettings = ruleSettings[stageKey(subject, stage)] ?? {}
+      const raw = progressNumbers
+        .filter((progress) => effectiveResult(stageSettings[progress]) === '검수후확정')
+        .map((progress) => ({ progress, result: getProgressResult(subject, stage, progress, stageSettings[progress], start, end) }))
+      reviewProgresses += raw.length
+      const rawReview = raw.reduce((sum, item) => sum + item.result.review, 0)
+      const rawCorrected = raw.reduce((sum, item) => sum + item.result.corrected, 0)
+      const review = monthRows.filter((row) => row.subject === subject && row.stage === stage).reduce((sum, row) => sum + row.reviewConfirmed, 0)
+      const progresses = raw.filter((item) => item.result.review > 0).map(({ progress, result }): ProgressError => {
+        const share = review * result.review / rawReview
+        const rate = roundRate(percent(result.corrected, result.review))
+        if (rate > ERROR_RATE_THRESHOLD) overCount += 1
+        return { stage, progress, review: Math.round(share), corrected: Math.round(share * result.corrected / result.review), rate }
+      })
+      const corrected = rawReview ? Math.round(review * rawCorrected / rawReview) : 0
+      return { stage, review, corrected, rate: roundRate(percent(corrected, review)), progresses }
+    })
+    const review = stages.reduce((sum, item) => sum + item.review, 0)
+    const corrected = stages.reduce((sum, item) => sum + item.corrected, 0)
+    return { subject, review, corrected, rate: roundRate(percent(corrected, review)), stages, overCount, reviewProgresses }
+  })
+}
+
+const TOP_PROGRESS_COUNT = 10
+
+// 과목 오류율 상세 팝업: 단계별 오류율과 오류율 높은 진도번호
+function ErrorDetailModal({ detail, month, onClose }: { detail: SubjectError; month: string; onClose: () => void }) {
+  const navigate = useNavigate()
+  const [stageFilter, setStageFilter] = useState('전체')
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const over = detail.rate > ERROR_RATE_THRESHOLD
+  const stageMax = Math.max(ERROR_RATE_THRESHOLD * 1.6, ...detail.stages.map((item) => item.rate))
+  const topRows = detail.stages
+    .flatMap((item) => item.progresses)
+    .filter((item) => stageFilter === '전체' || item.stage === stageFilter)
+    .sort((a, b) => b.rate - a.rate || b.corrected - a.corrected)
+    .slice(0, TOP_PROGRESS_COUNT)
+  // 기준설정은 단계 단위 화면이라, 단계를 고르지 않았으면 오류율이 가장 높은 진도번호의 단계로 이동한다.
+  const targetStage = stageFilter !== '전체' ? stageFilter : topRows[0]?.stage ?? detail.stages[0]?.stage
+  const goStandards = () => {
+    const state: StandardsLinkState = { subject: detail.subject, stage: targetStage, period: { start: `${month}-01`, end: monthEnd(month) }, sortByErrorRate: true, from: '대시보드 오류율 상세' }
+    navigate('/standards', { state })
+  }
+
+  return <div className="reviewer-modal-backdrop" onClick={onClose}>
+    <div className="dashboard-error-modal" role="dialog" aria-modal="true" aria-labelledby="dashboard-error-modal-title" onClick={(event) => event.stopPropagation()}>
+      <header>
+        <div>
+          <h2 id="dashboard-error-modal-title">{detail.subject} 오류율 상세 <em className={over ? 'over' : 'ok'}>{over ? '주의' : '정상'}</em></h2>
+          <p>{monthLabel(month)} · 관리 기준 {ERROR_RATE_THRESHOLD.toFixed(1)}% · 검수배정 진도번호 기준</p>
+        </div>
+        <button type="button" aria-label="닫기" onClick={onClose}><X size={18}/></button>
+      </header>
+      <div className="dashboard-error-modal-tiles">
+        <div className={over ? 'over' : ''}><span>오류율</span><strong>{detail.rate.toFixed(1)}%</strong></div>
+        <div><span>수정 장수</span><strong>{number.format(detail.corrected)}장</strong></div>
+        <div><span>검수후확정</span><strong>{number.format(detail.review)}장</strong></div>
+        <div><span>기준 초과 진도번호</span><strong>{number.format(detail.overCount)}개</strong><small>검수배정 {number.format(detail.reviewProgresses)}개 중</small></div>
+      </div>
+      <section className="dashboard-error-modal-stages">
+        <h3>단계별 오류율 <small>단계를 누르면 아래 목록이 그 단계로 바뀝니다</small></h3>
+        {detail.stages.map((item) => {
+          const stageOver = item.rate > ERROR_RATE_THRESHOLD
+          return <button type="button" key={item.stage} className={`dashboard-error-stage ${stageFilter === item.stage ? 'is-selected' : ''}`} onClick={() => setStageFilter(stageFilter === item.stage ? '전체' : item.stage)}>
+            <strong>{item.stage}</strong>
+            <div className="dashboard-error-track" role="img" aria-label={`${item.stage} 오류율 ${item.rate.toFixed(1)}%`}>
+              <i className={stageOver ? 'over' : ''} style={{ width: `${item.rate / stageMax * 100}%` }}/>
+              <b style={{ left: `${ERROR_RATE_THRESHOLD / stageMax * 100}%` }}/>
+            </div>
+            <span className={`dashboard-error-value ${stageOver ? 'over' : ''}`}>수정 {number.format(item.corrected)}장 · <b>{item.rate.toFixed(1)}%</b></span>
+          </button>
+        })}
+      </section>
+      <section className="dashboard-error-modal-progress">
+        <div className="dashboard-error-modal-progress-head">
+          <h3>오류율 높은 진도번호 <small>상위 {TOP_PROGRESS_COUNT}개 · 오류율 높은 순</small></h3>
+          <label>단계<select value={stageFilter} onChange={(event) => setStageFilter(event.target.value)}><option>전체</option>{detail.stages.map((item) => <option key={item.stage}>{item.stage}</option>)}</select></label>
+        </div>
+        <div className="dashboard-error-modal-table">
+          <table>
+            <thead><tr><th>단계</th><th>진도번호</th><th>검수후확정</th><th>수정</th><th>오류율</th></tr></thead>
+            <tbody>
+              {topRows.map((row) => (
+                <tr key={`${row.stage}-${row.progress}`}>
+                  <td>{row.stage}</td>
+                  <td>{row.progress}</td>
+                  <td>{number.format(row.review)}</td>
+                  <td>{number.format(row.corrected)}</td>
+                  <td className={row.rate > ERROR_RATE_THRESHOLD ? 'over' : ''}>{row.rate.toFixed(1)}%</td>
+                </tr>
+              ))}
+              {topRows.length === 0 && <tr><td colSpan={5} className="empty">검수배정 진도번호가 없습니다.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <footer>
+        <button type="button" className="primary" onClick={goStandards} disabled={!targetStage}>기준설정에서 보기 ({detail.subject} {targetStage}) <ArrowRight size={15}/></button>
+        <button type="button" onClick={onClose}>닫기</button>
+      </footer>
+    </div>
   </div>
 }
 

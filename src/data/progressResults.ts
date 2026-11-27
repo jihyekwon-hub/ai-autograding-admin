@@ -10,6 +10,10 @@ import { effectiveResult, type ProgressSetting } from './operationRules'
 /** 오류율 관리 기준(%): 이 값을 넘으면 주의 대상 */
 export const ERROR_RATE_THRESHOLD = 3
 
+// 오류율 예시 차이: 국어가 가장 높고(관리 기준 초과), 국어 안에서도 일부 단계가 특히 높다.
+const subjectErrorBias: Record<string, number> = { 국어: 0.008, 과학: 0.004, 영어: 0.003, 수학: 0 }
+const stageErrorBias: Record<string, number> = { '국어|2A': 0.018, '국어|A1': 0.014, '국어|B1': 0.01 }
+
 export type ProgressResult = { total: number; auto: number; review: number; center: number; corrected: number }
 
 function hash(text: string) {
@@ -34,9 +38,9 @@ export function getProgressResult(subject: string, stage: string, progress: numb
   const route = effectiveResult(setting)
   const result: ProgressResult = { total: 0, auto: 0, review: 0, center: 0, corrected: 0 }
   let corrected = 0
-  // 진도번호마다 고유한 기본 오류율(약 2%~5%, 대부분 3% 이하)을 두고, 달마다 조금씩 낮아진다.
+  // 진도번호마다 고유한 기본 오류율(약 2%~5%)에 과목·단계 차이를 더하고, 달마다 조금씩 낮아진다.
   const unit = (hash(`${subject}|${stage}|${progress}|error`) % 1000) / 1000
-  const baseErrorRate = 0.02 + unit ** 6 * 0.03
+  const baseErrorRate = 0.02 + unit ** 6 * 0.03 + (subjectErrorBias[subject] ?? 0) + (stageErrorBias[`${subject}|${stage}`] ?? 0)
   daysBetween(start, end).forEach((day) => {
     const seed = hash(`${subject}|${stage}|${progress}|${day}`)
     const weekday = new Date(`${day}T00:00:00Z`).getUTCDay()
