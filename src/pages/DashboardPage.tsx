@@ -46,7 +46,7 @@ export function DashboardPage() {
   const monthErrorRate = Math.round(percent(monthCorrected, monthReview) * 10) / 10
   // 화면에 보이는 값(소수 첫째 자리)과 판정이 어긋나지 않도록 반올림한 값으로 비교한다.
   const roundRate = (value: number) => Math.round(value * 10) / 10
-  const subjectErrors = subjectRows.map((row) => ({ subject: row.subject, rate: roundRate(percent(row.corrected, row.review)) }))
+  const subjectErrors = subjectRows.map((row) => ({ subject: row.subject, rate: roundRate(percent(row.corrected, row.review)), corrected: row.corrected, review: row.review }))
   const worstSubject = subjectErrors.reduce((worst, item) => item.rate > worst.rate ? item : worst, subjectErrors[0])
   // 기준 초과 진도번호: 저장된 기준이 검수배정인 진도번호 중 기준월 오류율이 관리 기준을 넘는 수
   const overThreshold = useMemo(() => {
@@ -136,7 +136,7 @@ export function DashboardPage() {
               <i className={item.rate > ERROR_RATE_THRESHOLD ? 'over' : ''} style={{ width: `${item.rate / barMax * 100}%` }}/>
               <b style={{ left: `${ERROR_RATE_THRESHOLD / barMax * 100}%` }}/>
             </div>
-            <span className={item.rate > ERROR_RATE_THRESHOLD ? 'over' : ''}>{item.rate.toFixed(1)}%</span>
+            <span className={`dashboard-error-value ${item.rate > ERROR_RATE_THRESHOLD ? 'over' : ''}`}>수정 {number.format(item.corrected)}장 · <b>{item.rate.toFixed(1)}%</b></span>
           </div>
         ))}
       </div>
@@ -166,7 +166,8 @@ export function DashboardPage() {
   </div>
 }
 
-const toneColors: Record<Tone, string> = { total: '#1d3555', ai: '#376fba', center: '#a5b9d0', auto: '#2f5f9e', review: '#77a4d8' }
+// 파스텔 팔레트: 자동확정=민트, 검수후확정=라벤더, 채점센터=피치, AI 자동채점=하늘, 전체=슬레이트
+const toneColors: Record<Tone, string> = { total: '#a9b4c4', ai: '#9cc2ea', center: '#f5cba7', auto: '#8fd0bd', review: '#c3b5ec' }
 
 function SplitPanel({ title, formula, kpis, centerLabel, slices }: { title: string; formula: string; kpis: Kpi[]; centerLabel: string; slices: Slice[] }) {
   const sum = slices.reduce((value, slice) => value + slice.value, 0)

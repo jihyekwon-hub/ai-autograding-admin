@@ -35,7 +35,8 @@ const errorRateLabel = (item: ProgressResult) => item.review ? `${(item.correcte
 const rate = (value: number, base: number) => base ? `${(value / base * 100).toFixed(1)}%` : '0.0%'
 // 과목별 배정 비중 그래프의 표시 순서(운영 요청 순서). 과목 목록 자체는 curriculum.subjects 기준.
 const pieSubjects: Subject[] = ['국어', '수학', '영어', '과학'].filter((item): item is Subject => (subjects as readonly string[]).includes(item))
-const assignmentColors: Record<RuleResult, string> = { 자동확정: '#2f5f9e', 검수후확정: '#77a4d8', 채점센터: '#b7c3d1' }
+// 대시보드와 같은 파스텔 색: 자동배정=민트, 검수배정=라벤더, 채점배정=피치
+const assignmentColors: Record<RuleResult, string> = { 자동확정: '#8fd0bd', 검수후확정: '#c3b5ec', 채점센터: '#f5cba7' }
 
 /** 이력에 남길 요약: 변경한 진도번호의 배정 현황 */
 function stageSummary(stageSettings: StageSettings, progresses: number[]) {
