@@ -8,7 +8,7 @@ import { curriculumStages, progressNumbers, subjects, type Subject } from './cur
 export type RuleResult = '자동확정' | '검수후확정' | '채점센터'
 
 export const ruleResults: RuleResult[] = ['자동확정', '검수후확정', '채점센터']
-/** 운영기준 설정 화면에서 쓰는 배정 명칭 */
+/** 배정기준설정 화면에서 쓰는 배정 명칭 */
 export const resultLabels: Record<RuleResult, string> = { 자동확정: '자동배정', 검수후확정: '검수배정', 채점센터: '채점배정' }
 /** 배정을 새로 선택할 때의 기본 LP 범위(초과 ~ 이하) */
 export const defaultLp: Record<RuleResult, LpRange> = { 자동확정: { lpMin: 95, lpMax: 100 }, 검수후확정: { lpMin: 90, lpMax: 100 }, 채점센터: { lpMin: 0, lpMax: 100 } }
