@@ -36,7 +36,6 @@ export const screenDataFlows: Record<string, string[]> = {
 }
 
 export const interactionMap = [
-  ['대시보드 전체·AI 자동채점·채점센터·자동확정·검수후확정 박스', '실적관리'],
   ['검수교사 관리 검수범위 보기/수정', '검수범위 설정 Modal'],
   ['수정내역 화면 보기', '검수 완료 화면 Modal'],
   ['운영기준 기준 저장', '저장 확인 팝업 → 이력관리 History 생성'],

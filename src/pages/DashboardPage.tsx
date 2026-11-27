@@ -1,5 +1,4 @@
 import { Building2, CheckCircle2, Layers3, Sparkles, UserCheck, type LucideIcon } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { MONTH_START, TODAY } from '../data/curriculum'
 import { performanceData } from '../data/performance'
 
@@ -8,7 +7,8 @@ const periodLabel = `${MONTH_START.slice(5).replace('-', '.')} ~ ${TODAY.slice(5
 const percent = (value: number, base: number) => base ? value / base * 100 : 0
 
 type Tone = 'total' | 'ai' | 'center' | 'auto' | 'review'
-type Kpi = { label: string; value: number; note: string; icon: LucideIcon; tone: Tone }
+/** share: 기준 대비 비율(%), sum: 아래 두 박스의 합계 박스 여부 */
+type Kpi = { label: string; value: number; share: number; icon: LucideIcon; tone: Tone; sum?: boolean }
 type Slice = { label: string; value: number; tone: Tone }
 
 export function DashboardPage() {
@@ -26,14 +26,14 @@ export function DashboardPage() {
   const total = ai + month.center
 
   const totalKpis: Kpi[] = [
-    { label: '전체', value: total, note: '채점해야 하는 전체 답안지', icon: Layers3, tone: 'total' },
-    { label: 'AI 자동채점', value: ai, note: `AI 채점물량 비율 ${percent(ai, total).toFixed(1)}%`, icon: Sparkles, tone: 'ai' },
-    { label: '채점센터', value: month.center, note: `전체의 ${percent(month.center, total).toFixed(1)}%`, icon: Building2, tone: 'center' },
+    { label: '전체', value: total, share: 100, icon: Layers3, tone: 'total', sum: true },
+    { label: 'AI 자동채점', value: ai, share: percent(ai, total), icon: Sparkles, tone: 'ai' },
+    { label: '채점센터', value: month.center, share: percent(month.center, total), icon: Building2, tone: 'center' },
   ]
   const aiKpis: Kpi[] = [
-    { label: 'AI 자동채점', value: ai, note: '자동확정 + 검수후확정', icon: Sparkles, tone: 'ai' },
-    { label: '자동확정', value: month.auto, note: `AI 자동채점의 ${percent(month.auto, ai).toFixed(1)}%`, icon: CheckCircle2, tone: 'auto' },
-    { label: '검수후확정', value: month.review, note: `AI 자동채점의 ${percent(month.review, ai).toFixed(1)}%`, icon: UserCheck, tone: 'review' },
+    { label: 'AI 자동채점', value: ai, share: 100, icon: Sparkles, tone: 'ai', sum: true },
+    { label: '자동확정', value: month.auto, share: percent(month.auto, ai), icon: CheckCircle2, tone: 'auto' },
+    { label: '검수후확정', value: month.review, share: percent(month.review, ai), icon: UserCheck, tone: 'review' },
   ]
 
   return <div className="page dashboard-page">
@@ -72,10 +72,10 @@ function SplitPanel({ title, formula, kpis, centerLabel, slices }: { title: stri
     <div className="dashboard-split-body">
       <div className="dashboard-kpi-stack">
         {kpis.map(({ icon: Icon, ...item }) => (
-          <Link className={`kpi-card clickable dashboard-kpi-${item.tone}`} to="/performance" key={item.label}>
+          <div className={`kpi-card dashboard-kpi-${item.tone} ${item.sum ? 'is-sum' : ''}`} key={item.label}>
             <div className="kpi-icon"><Icon size={20}/></div>
-            <div><span>{item.label}</span><strong>{number.format(item.value)}장</strong><small>{item.note}</small></div>
-          </Link>
+            <div><span>{item.label}</span><strong>{number.format(item.value)}장</strong><small>{item.share.toFixed(1)}%</small></div>
+          </div>
         ))}
       </div>
       <div className="dashboard-pie">
