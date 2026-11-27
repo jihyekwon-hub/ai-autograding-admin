@@ -54,7 +54,7 @@ export function subjectAssignmentCounts(settings: RuleSettings, subject: Subject
 
 // ── mock 데이터 생성 ──────────────────────────────────────────
 // 모든 과목·단계의 진도번호를 10개 단위 구간으로 나눠 배정 하나를 정한다.
-// 낮은 단계일수록 AI 채점(자동·검수배정) 비중이 높고, 과목별로 기본 비중이 다르다.
+// 낮은 단계·앞쪽 진도번호일수록 AI 채점(자동·검수배정) 비중이 높고, 과목별로 기본 비중이 다르다.
 
 function hash(text: string) {
   let value = 2166136261
@@ -76,7 +76,8 @@ const subjectWeights: Record<Subject, [number, number]> = {
 function seedSetting(subject: Subject, stage: string, stageIndex: number, block: number): ProgressSetting {
   const roll = hash(`${subject}|${stage}|${block}`) % 1000 / 1000
   const [autoWeight, reviewWeight] = subjectWeights[subject]
-  const auto = Math.max(0.1, autoWeight - stageIndex * 0.05)
+  // 낮은 단계·앞쪽 진도번호일수록 자동배정 비중을 높인다.
+  const auto = Math.min(0.85, Math.max(0.1, autoWeight - stageIndex * 0.05 + (9.5 - block) * 0.02))
   const review = reviewWeight
   const variation = hash(`${subject}|${stage}|${block}|lp`) % 4
   if (roll < auto) return { result: '자동확정', lp: 94 + variation }
