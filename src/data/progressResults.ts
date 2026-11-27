@@ -34,6 +34,9 @@ export function getProgressResult(subject: string, stage: string, progress: numb
   const route = effectiveResult(setting)
   const result: ProgressResult = { total: 0, auto: 0, review: 0, center: 0, corrected: 0 }
   let corrected = 0
+  // 진도번호마다 고유한 기본 오류율(약 2.5%~6.5%, 대부분 5% 이하)을 두고, 달마다 조금씩 낮아진다.
+  const unit = (hash(`${subject}|${stage}|${progress}|error`) % 1000) / 1000
+  const baseErrorRate = 0.025 + unit ** 3 * 0.04
   daysBetween(start, end).forEach((day) => {
     const seed = hash(`${subject}|${stage}|${progress}|${day}`)
     const weekday = new Date(`${day}T00:00:00Z`).getUTCDay()
@@ -44,7 +47,9 @@ export function getProgressResult(subject: string, stage: string, progress: numb
     if (route === '자동확정') result.auto += total
     if (route === '검수후확정') {
       result.review += total
-      corrected += total * (0.02 + ((seed >>> 9) % 6) / 100)
+      const monthIndex = Math.max(0, (Number(day.slice(0, 4)) - 2026) * 12 + Number(day.slice(5, 7)) - 1)
+      const dayNoise = (((seed >>> 9) % 7) - 3) * 0.001
+      corrected += total * Math.max(0.005, baseErrorRate - monthIndex * 0.0012 + dayNoise)
     }
     if (route === '채점센터') result.center += total
   })
