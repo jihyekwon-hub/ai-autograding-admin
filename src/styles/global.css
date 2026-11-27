@@ -516,9 +516,9 @@ a { color: inherit; text-decoration: none; }
 /* 대시보드 월간 지표: 좌(전체 구성) · 우(AI 자동채점 구성) */
 .dashboard-section-head { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
 .dashboard-section-head .dashboard-section-label { margin: 0; }
-.dashboard-month-select { display: flex; align-items: center; gap: 10px; color: #536176; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); white-space: nowrap; }
-.dashboard-month-select select { height: 36px; min-width: 140px; padding: 0 12px; border: 1px solid #cfd8e4; border-radius: 7px; outline: none; background: #fff; color: #172338; font: inherit; font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); cursor: pointer; }
-.dashboard-month-select select:focus { border-color: #5488c5; box-shadow: 0 0 0 2px rgba(84,136,197,.15); }
+.dashboard-month-select, .review-status-month-select { display: flex; align-items: center; gap: 10px; color: #536176; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); white-space: nowrap; }
+.dashboard-month-select select, .review-status-month-select select { height: 36px; min-width: 140px; padding: 0 12px; border: 1px solid #cfd8e4; border-radius: 7px; outline: none; background: #fff; color: #172338; font: inherit; font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); cursor: pointer; }
+.dashboard-month-select select:focus, .review-status-month-select select:focus { border-color: #5488c5; box-shadow: 0 0 0 2px rgba(84,136,197,.15); }
 .dashboard-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .dashboard-split-panel { min-width: 0; padding: 14px; border: 1px solid #dce3ec; border-radius: 10px; background: #f8fafc; }
 .dashboard-split-panel > header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 12px; }
@@ -1130,4 +1130,10 @@ a { color: inherit; text-decoration: none; }
 .dashboard-error-modal-tiles small b { color: #203149; font-weight: var(--font-weight-semibold); }
 @media (max-width: 760px) {
   .dashboard-subject-row .dashboard-subject-total { justify-content: flex-start; }
+}
+
+/* 수정내역: 기준월 선택(대시보드와 같은 위치·모양) */
+.review-status-section-head { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
+@media (max-width: 760px) {
+  .review-status-section-head { justify-content: flex-start; }
 }
