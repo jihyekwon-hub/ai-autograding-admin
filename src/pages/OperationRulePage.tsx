@@ -245,8 +245,8 @@ export function OperationRulePage() {
         <label>단계<select value={stage} onChange={(event) => setStage(event.target.value)}>{curriculumStages[subject].map((item) => <option key={item}>{item}</option>)}</select></label>
         <div className="operation-subject-pies" aria-label="과목별 배정 비중">
           <div className="operation-subject-pies-head">
-            <strong>과목별 배정 비중</strong>
-            <small>전체 단계 기준</small>
+            <strong>과목별 배정 비중 <small>(진도번호 수)</small></strong>
+            <small>저장된 기준 · 전체 단계</small>
             <ul>
               {ruleResults.map((result) => <li key={result}><i style={{ background: assignmentColors[result] }} />{resultLabels[result]}</li>)}
             </ul>
