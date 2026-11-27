@@ -204,7 +204,7 @@ export function OperationRulePage() {
                                 <input type="checkbox" checked={selected} aria-label={`진도 ${progress} ${resultLabels[result]}`} onChange={(event) => toggleResult(progress, result, event.target.checked)} />
                               </label>
                               <input className="assign-lp" type="number" min="0" max="100" disabled={!selected} aria-label={`진도 ${progress} ${resultLabels[result]} LP 기준값`} value={selected ? setting?.[result] : ''} placeholder="LP" onChange={(event) => setLp(progress, result, Number(event.target.value))} />
-                              <span className="assign-range">{selected && range ? `이상 · ${range.min}~${range.max}` : ''}</span>
+                              <span className="assign-range">{selected && range ? `${range.min}~${range.max}` : ''}</span>
                             </td>
                           )
                         })}
