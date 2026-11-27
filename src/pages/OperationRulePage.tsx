@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarDays, Check, Download, Filter, Save, Search, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, Download, RotateCcw, Save, Search, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useAdminData } from '../contexts/adminStore'
 import { curriculumStages, MONTH_START, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
@@ -17,7 +17,8 @@ import {
   type RuleSettings,
   type StageSettings,
 } from '../data/operationRules'
-import { getProgressResult } from '../data/progressResults'
+import { ColumnFilter, type SortDirection } from '../components/ColumnFilter'
+import { getProgressResult, type ProgressResult } from '../data/progressResults'
 import { downloadXlsx, type XlsxCell } from '../utils/xlsx'
 
 const number = new Intl.NumberFormat('ko-KR')
@@ -25,6 +26,11 @@ const emptyStage: StageSettings = {}
 type Period = { start: string; end: string }
 const initialPeriod: Period = { start: MONTH_START, end: TODAY }
 type ChangedStage = { subject: Subject; stage: string; progresses: number[] }
+
+type BoardColumnKey = 'progress' | RuleResult | 'total' | 'autoCount' | 'reviewCount' | 'centerCount' | 'errorRate'
+type BoardColumn = { key: BoardColumnKey; label: string; value: (progress: number, stageSettings: StageSettings) => string; sortValue: (progress: number) => number }
+const errorRateValue = (item: ProgressResult) => item.review ? item.corrected / item.review : -1
+const errorRateLabel = (item: ProgressResult) => item.review ? `${(item.corrected / item.review * 100).toFixed(1)}%` : '-'
 
 const rate = (value: number, base: number) => base ? `${(value / base * 100).toFixed(1)}%` : '0.0%'
 // 과목별 배정 비중 그래프의 표시 순서(운영 요청 순서). 과목 목록 자체는 curriculum.subjects 기준.
@@ -46,9 +52,9 @@ export function OperationRulePage() {
   const [periodDraft, setPeriodDraft] = useState<Period>(initialPeriod)
   const [period, setPeriod] = useState<Period>(initialPeriod)
   const [periodError, setPeriodError] = useState('')
-  // 엑셀 자동필터처럼 선택한 배정의 진도번호만 표시(두 표 공통)
-  const [assignFilter, setAssignFilter] = useState<RuleResult[]>(ruleResults)
-  const [filterOpen, setFilterOpen] = useState(false)
+  // 엑셀 자동필터처럼 표의 모든 열에서 필터·정렬(배정기준설정·처리결과조회 공통 행)
+  const [columnFilters, setColumnFilters] = useState<Partial<Record<BoardColumnKey, string[] | null>>>({})
+  const [boardSort, setBoardSort] = useState<{ key: BoardColumnKey; direction: SortDirection } | null>(null)
 
   const key = stageKey(subject, stage)
   const savedStage = ruleSettings[key] ?? emptyStage
@@ -77,17 +83,73 @@ export function OperationRulePage() {
 
   // 처리결과는 저장된 기준과 조회기간으로 집계한다(편집 중인 기준은 반영하지 않음).
   const results = useMemo(() => progressNumbers.map((progress) => getProgressResult(subject, stage, progress, savedStage[progress], period.start, period.end)), [subject, stage, savedStage, period])
-  // 필터: 편집 중인 배정 또는 저장된 배정이 선택한 배정에 해당하면 표시(편집 중에 행이 사라지지 않게)
-  const visibleProgresses = progressNumbers.filter((progress) => assignFilter.includes(effectiveResult(draftStage[progress])) || assignFilter.includes(effectiveResult(savedStage[progress])))
-  const filterActive = assignFilter.length < ruleResults.length
+  // 표의 열 정의: 필터 값(문자열)과 정렬 값(숫자)
+  const assignmentValue = (stageSettings: StageSettings, progress: number, result: RuleResult) => {
+    const setting = stageSettings[progress]
+    if (effectiveResult(setting) !== result) return '(미선택)'
+    return setting ? `${setting.lpMin}~${setting.lpMax}` : '선택'
+  }
+  const boardColumns: BoardColumn[] = [
+    { key: 'progress', label: '진도번호', value: (progress) => String(progress), sortValue: (progress) => progress },
+    ...ruleResults.map((result): BoardColumn => ({
+      key: result,
+      label: resultLabels[result],
+      value: (progress, stageSettings) => assignmentValue(stageSettings, progress, result),
+      sortValue: (progress) => effectiveResult(draftStage[progress]) === result ? (draftStage[progress]?.lpMin ?? 0) : -1,
+    })),
+    { key: 'total', label: '전체 제출', value: (progress) => number.format(results[progress - 1].total), sortValue: (progress) => results[progress - 1].total },
+    { key: 'autoCount', label: '자동확정', value: (progress) => number.format(results[progress - 1].auto), sortValue: (progress) => results[progress - 1].auto },
+    { key: 'reviewCount', label: '검수후확정', value: (progress) => number.format(results[progress - 1].review), sortValue: (progress) => results[progress - 1].review },
+    { key: 'centerCount', label: '채점센터', value: (progress) => number.format(results[progress - 1].center), sortValue: (progress) => results[progress - 1].center },
+    { key: 'errorRate', label: '오류율', value: (progress) => errorRateLabel(results[progress - 1]), sortValue: (progress) => errorRateValue(results[progress - 1]) },
+  ]
+  // 배정 열은 편집 중인 값과 저장된 값 중 하나라도 맞으면 표시(편집 중에 행이 사라지지 않게)
+  const matchesColumn = (column: BoardColumn, progress: number) => {
+    const selected = columnFilters[column.key]
+    if (!selected) return true
+    return selected.includes(column.value(progress, draftStage)) || selected.includes(column.value(progress, savedStage))
+  }
+  const matchesAll = (progress: number, except?: BoardColumnKey) => boardColumns.every((column) => column.key === except || matchesColumn(column, progress))
+  const filteredProgresses = progressNumbers.filter((progress) => matchesAll(progress))
+  const sortColumn = boardSort ? boardColumns.find((column) => column.key === boardSort.key) : undefined
+  const visibleProgresses = sortColumn && boardSort
+    ? [...filteredProgresses].sort((a, b) => (sortColumn.sortValue(a) - sortColumn.sortValue(b)) * (boardSort.direction === 'asc' ? 1 : -1))
+    : filteredProgresses
+  const activeFilterLabels = boardColumns.filter((column) => columnFilters[column.key]).map((column) => column.label)
+  const filterActive = activeFilterLabels.length > 0 || !!boardSort
+  // 엑셀처럼 다른 열의 필터를 적용한 행에서 값 목록을 만든다.
+  const valuesFor = (column: BoardColumn) => {
+    const unique = new Map<string, number>()
+    progressNumbers.filter((progress) => matchesAll(progress, column.key)).forEach((progress) => {
+      const value = column.value(progress, draftStage)
+      if (!unique.has(value)) unique.set(value, column.sortValue(progress))
+    })
+    return [...unique.entries()].sort(([, a], [, b]) => a - b).map(([value]) => value)
+  }
+  const filterHeader = (key: BoardColumnKey) => {
+    const column = boardColumns.find((item) => item.key === key)!
+    return (
+      <div className="column-filter-head">
+        <span>{column.label}</span>
+        <ColumnFilter
+          label={column.label}
+          values={valuesFor(column)}
+          selected={columnFilters[key] ?? null}
+          sort={boardSort?.key === key ? boardSort.direction : null}
+          onApply={(selected) => setColumnFilters((current) => ({ ...current, [key]: selected }))}
+          onSort={(direction) => setBoardSort({ key, direction })}
+        />
+      </div>
+    )
+  }
+  const resetFilters = () => { setColumnFilters({}); setBoardSort(null) }
   const totals = visibleProgresses.reduce((sum, progress) => { const item = results[progress - 1]; return { total: sum.total + item.total, review: sum.review + item.review, corrected: sum.corrected + item.corrected } }, { total: 0, review: 0, corrected: 0 })
-  const toggleFilter = (result: RuleResult) => setAssignFilter((current) => current.includes(result) ? current.filter((item) => item !== result) : ruleResults.filter((item) => item === result || current.includes(item)))
 
   // 배정기준설정 + 처리결과조회를 한 시트의 같은 행으로 내려받는다(현재 화면의 필터·조회기간 기준).
   const downloadExcel = () => {
     const header = (value: string): XlsxCell => ({ value, style: 'header' })
     const rows: XlsxCell[][] = [
-      [{ value: `${subject} ${stage}단계 배정기준설정 · 처리결과조회 (조회기간 ${period.start} ~ ${period.end}${filterActive ? ` · 필터: ${assignFilter.map((item) => resultLabels[item]).join(', ')}` : ''})`, style: 'title' }],
+      [{ value: `${subject} ${stage}단계 배정기준설정 · 처리결과조회 (조회기간 ${period.start} ~ ${period.end}${activeFilterLabels.length ? ` · 필터: ${activeFilterLabels.join(', ')}` : ''})`, style: 'title' }],
       [header('진도번호'), header('배정기준설정'), header(''), header(''), header('처리결과조회'), ...Array.from({ length: 8 }, () => header(''))],
       [header(''), header('배정'), header('LP 초과'), header('LP 이하'), header('전체 제출'), header('자동확정'), header('자동확정 비율'), header('검수후확정'), header('검수후확정 비율'), header('채점센터'), header('채점센터 비율'), header('오류율'), header('오류 장수')],
       ...visibleProgresses.map((progress): XlsxCell[] => {
@@ -209,21 +271,8 @@ export function OperationRulePage() {
                 <th colSpan={4} className="assign-part board-title part-first part-last">
                   <div className="board-title-assign">
                     <strong>배정기준설정</strong>
-                    <div className="assign-filter">
-                      <button type="button" className={filterActive ? 'active' : ''} aria-expanded={filterOpen} onClick={() => setFilterOpen(!filterOpen)}>
-                        <Filter size={13} /> 배정 필터 <b>{filterActive ? assignFilter.map((item) => resultLabels[item]).join(', ') || '없음' : '전체'}</b>
-                      </button>
-                      {filterOpen && (
-                        <div className="assign-filter-menu" role="menu">
-                          <label><input type="checkbox" checked={!filterActive} onChange={() => setAssignFilter(filterActive ? ruleResults : [])} /> (모두 선택)</label>
-                          {ruleResults.map((result) => (
-                            <label key={result}><input type="checkbox" checked={assignFilter.includes(result)} onChange={() => toggleFilter(result)} /> {resultLabels[result]}</label>
-                          ))}
-                          <button type="button" onClick={() => setFilterOpen(false)}>닫기</button>
-                        </div>
-                      )}
-                    </div>
-                    <span className="assign-filter-count">진도번호 {visibleProgresses.length}개</span>
+                    <span className="assign-filter-count">진도번호 {visibleProgresses.length}개{activeFilterLabels.length ? ` · 필터: ${activeFilterLabels.join(', ')}` : ''}</span>
+                    {filterActive && <button type="button" className="board-filter-reset" onClick={resetFilters}><RotateCcw size={12} /> 필터 초기화</button>}
                   </div>
                   <small>배정 하나를 선택하고 LP 범위를 입력합니다(왼쪽 값 초과 ~ 오른쪽 값 이하). 배정이 없는 진도번호는 채점센터로 이관됩니다.</small>
                 </th>
@@ -244,18 +293,18 @@ export function OperationRulePage() {
                 </th>
               </tr>
               <tr className="board-group-row">
-                <th rowSpan={2} className="assign-part part-first">진도번호</th>
+                <th rowSpan={2} className="assign-part part-first">{filterHeader('progress')}</th>
                 <th colSpan={2} className="assign-part group-ai">AI 채점</th>
                 <th className="assign-part group-center part-last">기존 채점</th>
-                <th rowSpan={2} className="result-part part-first">전체 제출</th>
+                <th rowSpan={2} className="result-part part-first">{filterHeader('total')}</th>
                 <th colSpan={2} className="result-part group-ai">AI 채점</th>
-                <th rowSpan={2} className="result-part">채점센터</th>
-                <th rowSpan={2} className="result-part part-last">오류율</th>
+                <th rowSpan={2} className="result-part">{filterHeader('centerCount')}</th>
+                <th rowSpan={2} className="result-part part-last">{filterHeader('errorRate')}</th>
               </tr>
               <tr className="board-sub-row">
-                {ruleResults.map((result) => <th key={result} className={`assign-part ${result === '채점센터' ? 'part-last' : ''}`}>{resultLabels[result]}</th>)}
-                <th className="result-part">자동확정</th>
-                <th className="result-part">검수후확정</th>
+                {ruleResults.map((result) => <th key={result} className={`assign-part ${result === '채점센터' ? 'part-last' : ''}`}>{filterHeader(result)}</th>)}
+                <th className="result-part">{filterHeader('autoCount')}</th>
+                <th className="result-part">{filterHeader('reviewCount')}</th>
               </tr>
             </thead>
             <tbody>
@@ -290,7 +339,7 @@ export function OperationRulePage() {
                   </tr>
                 )
               })}
-              {visibleProgresses.length === 0 && <tr><td colSpan={9} className="rule-board-empty">선택한 배정에 해당하는 진도번호가 없습니다. 배정 필터를 확인해 주세요.</td></tr>}
+              {visibleProgresses.length === 0 && <tr><td colSpan={9} className="rule-board-empty">필터 조건에 맞는 진도번호가 없습니다. 필터를 확인해 주세요.</td></tr>}
             </tbody>
           </table>
         </div>
