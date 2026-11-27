@@ -32,6 +32,7 @@ export const screenDataFlows: Record<string, string[]> = {
 }
 
 export const interactionMap = [
+  ['수정내역 기준월', '해당 월 수정 내역만 표시(일시 필터 해제, 다른 열 필터 유지)'],
   ['수정내역 화면 보기', '검수 완료 화면 Modal'],
   ['기준설정 열 필터', '배정기준설정·처리결과조회 행 동시 필터·정렬'],
   ['기준설정 기준 저장', '저장 확인 팝업 → 기준 반영 → 대시보드 처리 구성에 반영'],
