@@ -27,7 +27,7 @@ export const adminFlow: FlowGroup[] = [
 ]
 
 export const screenDataFlows: Record<string, string[]> = {
-  dashboard: ['Performance mock data + Reviewer/Review log', '당일 집계 및 계산', '운영 KPI 4개 · 검수 진행률 · 추이 그래프'],
+  dashboard: ['Performance mock data', '이번 달 1일~기준일 누적 집계', '전체 = AI 자동채점 + 채점센터 / AI 자동채점 = 자동확정 + 검수후확정', '박스 6개 · 파이그래프 2개'],
   performance: ['제출 실적 + Routing 결과', '조회조건 Filter', '일/월/연 집계', 'KPI · Trend(숫자 라벨) · 구성비 · 상세표 · CSV'],
   standards: ['과목·단계·배정(미설정 포함) 조회', '조회기간별 진도번호 처리결과·수정율 집계(실시간)', '진도번호별 정답/오답 LP 범위 직접 수정 또는 일괄 입력', 'LP 0~100 · 배정 간 겹침 Validation', '저장 확인 팝업', 'Rule Save API (예정)', 'OPERATING_RULE DB (예정)', 'Routing Engine', '동시에 ADMIN_HISTORY 기록'],
   reviewers: ['Reviewer/Assignment 조회', '복수 검수범위 편집', '범위 Validation', 'REVIEW_ASSIGNMENT 저장', 'ADMIN_HISTORY 기록'],
@@ -36,8 +36,7 @@ export const screenDataFlows: Record<string, string[]> = {
 }
 
 export const interactionMap = [
-  ['대시보드 전체·자동확정·검수후확정·센터 KPI', '실적관리'],
-  ['대시보드 검수현황 패널', '수정내역'],
+  ['대시보드 전체·AI 자동채점·채점센터·자동확정·검수후확정 박스', '실적관리'],
   ['검수교사 관리 검수범위 보기/수정', '검수범위 설정 Modal'],
   ['수정내역 화면 보기', '검수 완료 화면 Modal'],
   ['운영기준 설정 미설정 경고 아이콘', '미설정 진도번호 안내 Tooltip'],

@@ -1,50 +1,94 @@
-import { Building2, CalendarDays, CheckCircle2, Clock3, Files, Layers3, PencilLine, UserCheck, WalletCards } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Building2, CalendarDays, CheckCircle2, Layers3, Sparkles, UserCheck, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useReviewers } from '../contexts/reviewerStore'
-import { TODAY } from '../data/curriculum'
+import { MONTH_START, TODAY } from '../data/curriculum'
 import { performanceData } from '../data/performance'
-import { reviewPerformanceRecords } from '../data/reviewPerformance'
 
 const number = new Intl.NumberFormat('ko-KR')
-// 기준일(TODAY)을 "2026년 11월 16일 월요일" 형식으로 표시한다.
-const todayLabel = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(`${TODAY}T00:00:00Z`))
-function PanelTitle({ icon, title, description }: { icon: ReactNode; title: string; description: string }) { return <div className="dashboard-panel-title"><span>{icon}</span><div><h2>{title}</h2><p>{description}</p></div></div> }
+const monthLabel = `${Number(TODAY.slice(0, 4))}년 ${Number(TODAY.slice(5, 7))}월`
+const periodLabel = `${MONTH_START.slice(5).replace('-', '.')} ~ ${TODAY.slice(5).replace('-', '.')} 누적`
+const percent = (value: number, base: number) => base ? value / base * 100 : 0
+
+type Tone = 'total' | 'ai' | 'center' | 'auto' | 'review'
+type Kpi = { label: string; value: number; note: string; icon: LucideIcon; tone: Tone }
+type Slice = { label: string; value: number; tone: Tone }
 
 export function DashboardPage() {
-  const { reviewers } = useReviewers()
-  const totals = performanceData.filter((row) => row.date === TODAY).reduce((sum, row) => ({ total: sum.total + row.total, auto: sum.auto + row.autoConfirmed, review: sum.review + row.reviewConfirmed, center: sum.center + row.gradingCenter }), { total: 0, auto: 0, review: 0, center: 0 })
-  const allowance = reviewers.reduce((sum, item) => sum + item.expectedAllowance, 0); const autoRate = totals.total ? (totals.auto + totals.review) / totals.total * 100 : 0
-  const todayRecords = reviewPerformanceRecords.filter((item) => item.date === TODAY)
-  const totalReviewVolume = reviewers.reduce((sum, item) => sum + item.assignedPages, 0)
-  const reviewedPages = reviewers.reduce((sum, item) => sum + item.processedPages, 0)
-  const workMinutes = todayRecords.reduce((sum, item) => sum + item.workMinutes, 0)
-  const correctionCount = todayRecords.reduce((sum, item) => sum + item.corrections, 0)
-  const reviewProgress = totalReviewVolume ? reviewedPages / totalReviewVolume * 100 : 0
-  const reviewerStats = reviewers.map((reviewer) => { const record = todayRecords.find((item) => item.reviewerId === reviewer.id); return { name: reviewer.name.replace('검수교사 ', ''), pages: reviewer.processedPages, corrections: record?.corrections ?? 0 } })
-  const recentDates = [...new Set(reviewPerformanceRecords.map((item) => item.date))].slice(-7)
-  const recentTrend = recentDates.map((date) => ({
-    label: date.slice(5),
-    pages: date === TODAY ? reviewedPages : reviewPerformanceRecords.filter((item) => item.date === date).reduce((sum, item) => sum + item.reviewedPages, 0),
-    corrections: reviewPerformanceRecords.filter((item) => item.date === date).reduce((sum, item) => sum + item.corrections, 0),
-  }))
-  const kpis = [
-    { label: '전체 물량', value: `${number.format(totals.total)}장`, note: `자동채점 비율 ${autoRate.toFixed(1)}%`, icon: Layers3, to: '/performance' },
-    { label: '자동확정 물량', value: `${number.format(totals.auto)}장`, note: `전체의 ${totals.total ? (totals.auto / totals.total * 100).toFixed(1) : 0}%`, icon: CheckCircle2, to: '/performance' },
-    { label: '검수후확정 물량', value: `${number.format(totals.review)}장`, note: `전체의 ${totals.total ? (totals.review / totals.total * 100).toFixed(1) : 0}%`, icon: UserCheck, to: '/performance' },
-    { label: '채점센터 이관 물량', value: `${number.format(totals.center)}장`, note: `전체의 ${totals.total ? (totals.center / totals.total * 100).toFixed(1) : 0}%`, icon: Building2, to: '/performance' },
+  // 대시보드는 월 단위(이번 달 1일 ~ 기준일 누적)로 집계한다.
+  const month = performanceData
+    .filter((row) => row.date >= MONTH_START && row.date <= TODAY)
+    .reduce((sum, row) => ({
+      auto: sum.auto + row.autoConfirmed,
+      review: sum.review + row.reviewConfirmed,
+      center: sum.center + row.gradingCenter,
+    }), { auto: 0, review: 0, center: 0 })
+
+  // 전체 = AI 자동채점 + 채점센터, AI 자동채점 = 자동확정 + 검수후확정
+  const ai = month.auto + month.review
+  const total = ai + month.center
+
+  const totalKpis: Kpi[] = [
+    { label: '전체', value: total, note: '채점해야 하는 전체 답안지', icon: Layers3, tone: 'total' },
+    { label: 'AI 자동채점', value: ai, note: `AI 채점물량 비율 ${percent(ai, total).toFixed(1)}%`, icon: Sparkles, tone: 'ai' },
+    { label: '채점센터', value: month.center, note: `전체의 ${percent(month.center, total).toFixed(1)}%`, icon: Building2, tone: 'center' },
   ]
+  const aiKpis: Kpi[] = [
+    { label: 'AI 자동채점', value: ai, note: '자동확정 + 검수후확정', icon: Sparkles, tone: 'ai' },
+    { label: '자동확정', value: month.auto, note: `AI 자동채점의 ${percent(month.auto, ai).toFixed(1)}%`, icon: CheckCircle2, tone: 'auto' },
+    { label: '검수후확정', value: month.review, note: `AI 자동채점의 ${percent(month.review, ai).toFixed(1)}%`, icon: UserCheck, tone: 'review' },
+  ]
+
   return <div className="page dashboard-page">
-    <div className="dashboard-heading"><div><p>AI 자동채점 관리</p><h1>대시보드</h1><span>자동채점 운영 현황과 주요 지표를 한눈에 확인합니다.</span></div><div className="dashboard-date"><CalendarDays size={16}/> {todayLabel}</div></div>
-    <h2 className="dashboard-section-label">주요 운영 지표</h2><section className="kpi-grid dashboard-kpi-four">{kpis.map(({ icon: Icon, ...item }) => <Link className="kpi-card clickable" to={item.to} key={item.label}><div className="kpi-icon"><Icon size={20}/></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.note}</small></div></Link>)}</section>
-    <section className="dashboard-panel performance-panel dashboard-review-status-panel"><Link className="dashboard-panel-link" to="/review-status"><PanelTitle icon={<Files size={17}/>} title="검수현황" description="금일 검수 진행 수준과 최근 실적을 확인합니다." /><div className="performance-summary dashboard-review-summary"><div><Clock3 size={18}/><span>금일 총 근무시간<strong>{Math.floor(workMinutes / 60)}시간 {workMinutes % 60}분</strong></span></div><div><Files size={18}/><span>금일 검수 건수<strong>{number.format(reviewedPages)}건</strong></span></div><div><PencilLine size={18}/><span>금일 수정 건수<strong>{number.format(correctionCount)}건</strong></span></div><div><WalletCards size={18}/><span>예상 수당<strong>₩{number.format(allowance)}</strong></span></div></div><div className="dashboard-review-progress"><div><span>오늘 검수 진행률</span><strong>{number.format(reviewedPages)}건 / {number.format(totalReviewVolume)}건 <em>{reviewProgress.toFixed(1)}%</em></strong></div><div className="dashboard-review-progress-track" role="progressbar" aria-label="오늘 검수 진행률" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(reviewProgress)}><i style={{ width: `${Math.min(reviewProgress, 100)}%` }}/></div><small>오늘 총 검수량(검수후확정 분량) 대비 현재까지 검수 완료된 건수</small></div><div className="dashboard-review-charts"><TrendChart data={recentTrend}/><ReviewerBars data={reviewerStats}/></div></Link></section>
+    <div className="dashboard-heading"><div><p>AI 자동채점 관리</p><h1>대시보드</h1><span>자동채점 운영 현황과 주요 지표를 월 단위로 확인합니다.</span></div><div className="dashboard-date"><CalendarDays size={16}/> {monthLabel} 월간 실적</div></div>
+    <div className="dashboard-section-head">
+      <h2 className="dashboard-section-label">주요 운영 지표</h2>
+      <span className="dashboard-period-badge">월간 · {periodLabel}</span>
+    </div>
+    <section className="dashboard-split">
+      <SplitPanel
+        title="전체 처리 구성"
+        formula="전체 = AI 자동채점 + 채점센터"
+        kpis={totalKpis}
+        centerLabel="전체"
+        slices={[{ label: 'AI 자동채점', value: ai, tone: 'ai' }, { label: '채점센터', value: month.center, tone: 'center' }]}
+      />
+      <SplitPanel
+        title="AI 자동채점 구성"
+        formula="AI 자동채점 = 자동확정 + 검수후확정"
+        kpis={aiKpis}
+        centerLabel="AI 자동채점"
+        slices={[{ label: '자동확정', value: month.auto, tone: 'auto' }, { label: '검수후확정', value: month.review, tone: 'review' }]}
+      />
+    </section>
   </div>
 }
-function TrendChart({ data }: { data: { label: string; pages: number; corrections: number }[] }) {
-  const width = 620; const height = 150; const maxPages = Math.max(...data.map((item) => item.pages), 1); const maxCorrections = Math.max(...data.map((item) => item.corrections), 1)
-  const point = (value: number, max: number, index: number) => `${data.length === 1 ? width / 2 : index / (data.length - 1) * width},${height - 18 - value / max * 110}`
-  const pagePoints = data.map((item, index) => point(item.pages, maxPages, index)); const correctionPoints = data.map((item, index) => point(item.corrections, maxCorrections, index))
-  return <div className="mini-chart dashboard-trend-chart"><h3>최근 검수건수 및 수정건수 추이</h3><div className="dashboard-trend-values">{data.map((item) => <span key={item.label}><b>{number.format(item.pages)}</b><em>{number.format(item.corrections)}</em></span>)}</div><svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"><polyline className="review-line" points={pagePoints.join(' ')}/><polyline className="correction-line" points={correctionPoints.join(' ')}/>{pagePoints.map((item, index) => { const [x, y] = item.split(','); return <circle className="review-point" key={`review-${data[index].label}`} cx={x} cy={y} r="4"/> })}{correctionPoints.map((item, index) => { const [x, y] = item.split(','); return <circle className="correction-point" key={`correction-${data[index].label}`} cx={x} cy={y} r="4"/> })}</svg><div className="dashboard-trend-labels">{data.map((item) => <span key={item.label}>{item.label}</span>)}</div><ChartLegend/></div>
+
+const toneColors: Record<Tone, string> = { total: '#1d3555', ai: '#376fba', center: '#a5b9d0', auto: '#2f5f9e', review: '#77a4d8' }
+
+function SplitPanel({ title, formula, kpis, centerLabel, slices }: { title: string; formula: string; kpis: Kpi[]; centerLabel: string; slices: Slice[] }) {
+  const sum = slices.reduce((value, slice) => value + slice.value, 0)
+  const first = percent(slices[0].value, sum)
+  const gradient = `conic-gradient(${toneColors[slices[0].tone]} 0 ${first}%, ${toneColors[slices[1].tone]} ${first}% 100%)`
+  return <article className="dashboard-split-panel">
+    <header><strong>{title}</strong><small>{formula}</small></header>
+    <div className="dashboard-split-body">
+      <div className="dashboard-kpi-stack">
+        {kpis.map(({ icon: Icon, ...item }) => (
+          <Link className={`kpi-card clickable dashboard-kpi-${item.tone}`} to="/performance" key={item.label}>
+            <div className="kpi-icon"><Icon size={20}/></div>
+            <div><span>{item.label}</span><strong>{number.format(item.value)}장</strong><small>{item.note}</small></div>
+          </Link>
+        ))}
+      </div>
+      <div className="dashboard-pie">
+        <div className="dashboard-pie-chart" style={{ background: gradient }} role="img" aria-label={slices.map((slice) => `${slice.label} ${percent(slice.value, sum).toFixed(1)}%`).join(', ')}>
+          <span><small>{centerLabel}</small><strong>{number.format(sum)}</strong></span>
+        </div>
+        <ul>
+          {slices.map((slice) => (
+            <li key={slice.label}><i style={{ background: toneColors[slice.tone] }}/><span>{slice.label}</span><strong>{percent(slice.value, sum).toFixed(1)}%</strong></li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </article>
 }
-function ReviewerBars({ data }: { data: { name: string; pages: number; corrections: number }[] }) { const pageMax = Math.max(...data.map((item) => item.pages), 1); const correctionMax = Math.max(...data.map((item) => item.corrections), 1); return <div className="mini-chart"><h3>검수교사별 검수건수 및 수정건수</h3><div className="dashboard-dual-bars dashboard-reviewer-bars">{data.map((item) => <div key={item.name}><strong><span>{number.format(item.pages)}</span><em>{number.format(item.corrections)}</em></strong><span><i style={{ height: `${item.pages / pageMax * 100}%` }}/><b style={{ height: `${item.corrections / correctionMax * 100}%` }}/></span><small>{item.name}</small></div>)}</div><ChartLegend/></div> }
-function ChartLegend() { return <div className="dashboard-chart-legend"><span><i/>검수 건수</span><span><i/>수정 건수</span></div> }
