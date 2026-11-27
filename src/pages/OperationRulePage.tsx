@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarDays, Check, Save, Search, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, Download, Filter, Save, Search, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useAdminData } from '../contexts/adminStore'
 import { curriculumStages, MONTH_START, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
@@ -18,6 +18,7 @@ import {
   type StageSettings,
 } from '../data/operationRules'
 import { getProgressResult } from '../data/progressResults'
+import { downloadXlsx, type XlsxCell } from '../utils/xlsx'
 
 const number = new Intl.NumberFormat('ko-KR')
 const emptyStage: StageSettings = {}
@@ -45,6 +46,9 @@ export function OperationRulePage() {
   const [periodDraft, setPeriodDraft] = useState<Period>(initialPeriod)
   const [period, setPeriod] = useState<Period>(initialPeriod)
   const [periodError, setPeriodError] = useState('')
+  // 엑셀 자동필터처럼 선택한 배정의 진도번호만 표시(두 표 공통)
+  const [assignFilter, setAssignFilter] = useState<RuleResult[]>(ruleResults)
+  const [filterOpen, setFilterOpen] = useState(false)
 
   const key = stageKey(subject, stage)
   const savedStage = ruleSettings[key] ?? emptyStage
@@ -73,7 +77,45 @@ export function OperationRulePage() {
 
   // 처리결과는 저장된 기준과 조회기간으로 집계한다(편집 중인 기준은 반영하지 않음).
   const results = useMemo(() => progressNumbers.map((progress) => getProgressResult(subject, stage, progress, savedStage[progress], period.start, period.end)), [subject, stage, savedStage, period])
-  const totals = results.reduce((sum, item) => ({ total: sum.total + item.total, review: sum.review + item.review, corrected: sum.corrected + item.corrected }), { total: 0, review: 0, corrected: 0 })
+  // 필터: 편집 중인 배정 또는 저장된 배정이 선택한 배정에 해당하면 표시(편집 중에 행이 사라지지 않게)
+  const visibleProgresses = progressNumbers.filter((progress) => assignFilter.includes(effectiveResult(draftStage[progress])) || assignFilter.includes(effectiveResult(savedStage[progress])))
+  const filterActive = assignFilter.length < ruleResults.length
+  const totals = visibleProgresses.reduce((sum, progress) => { const item = results[progress - 1]; return { total: sum.total + item.total, review: sum.review + item.review, corrected: sum.corrected + item.corrected } }, { total: 0, review: 0, corrected: 0 })
+  const toggleFilter = (result: RuleResult) => setAssignFilter((current) => current.includes(result) ? current.filter((item) => item !== result) : ruleResults.filter((item) => item === result || current.includes(item)))
+
+  // 배정기준설정 + 처리결과조회를 한 시트의 같은 행으로 내려받는다(현재 화면의 필터·조회기간 기준).
+  const downloadExcel = () => {
+    const header = (value: string): XlsxCell => ({ value, style: 'header' })
+    const rows: XlsxCell[][] = [
+      [{ value: `${subject} ${stage}단계 배정기준설정 · 처리결과조회 (조회기간 ${period.start} ~ ${period.end}${filterActive ? ` · 필터: ${assignFilter.map((item) => resultLabels[item]).join(', ')}` : ''})`, style: 'title' }],
+      [header('진도번호'), header('배정기준설정'), header(''), header(''), header('처리결과조회'), ...Array.from({ length: 8 }, () => header(''))],
+      [header(''), header('배정'), header('LP 초과'), header('LP 이하'), header('전체 제출'), header('자동확정'), header('자동확정 비율'), header('검수후확정'), header('검수후확정 비율'), header('채점센터'), header('채점센터 비율'), header('오류율'), header('오류 장수')],
+      ...visibleProgresses.map((progress): XlsxCell[] => {
+        const setting = draftStage[progress]
+        const item = results[progress - 1]
+        const ratio = (value: number): XlsxCell => ({ value: item.total ? value / item.total : 0, style: 'percent' })
+        return [
+          { value: progress, style: 'body' },
+          { value: resultLabels[effectiveResult(setting)], style: 'body' },
+          { value: setting ? setting.lpMin : null, style: 'body' },
+          { value: setting ? setting.lpMax : null, style: 'body' },
+          { value: item.total, style: 'body' },
+          { value: item.auto, style: 'body' }, ratio(item.auto),
+          { value: item.review, style: 'body' }, ratio(item.review),
+          { value: item.center, style: 'body' }, ratio(item.center),
+          item.review ? { value: item.corrected / item.review, style: 'percent' } : { value: null, style: 'body' },
+          { value: item.corrected, style: 'body' },
+        ]
+      }),
+    ]
+    downloadXlsx(`배정기준설정_${subject}_${stage}_${period.start}_${period.end}`, {
+      name: `${subject} ${stage}단계`,
+      rows,
+      columnWidths: [10, 12, 10, 10, 12, 12, 13, 12, 15, 12, 13, 10, 10],
+      merges: ['A1:M1', 'A2:A3', 'B2:D2', 'E2:M2'],
+      freezeRows: 3,
+    })
+  }
 
   const changeSubject = (next: Subject) => {
     setSubject(next)
@@ -122,7 +164,7 @@ export function OperationRulePage() {
         before: stageSummary(ruleSettings[itemKey] ?? {}, item.progresses),
         after: stageSummary(draft[itemKey] ?? {}, item.progresses),
         worker: '운영관리자(admin)',
-        note: '운영기준 설정 화면에서 저장',
+        note: '배정기준설정 화면에서 저장',
         targetKey: `RULE-${itemKey}`,
       })
     })
@@ -134,7 +176,7 @@ export function OperationRulePage() {
 
   return (
     <div className="page operation-rule-page">
-      <div className="operation-heading"><div><p>AI 자동채점 관리</p><h1>운영기준 설정</h1><span>과목·단계를 선택하면 진도번호별 배정기준을 설정하고 처리결과를 함께 확인할 수 있습니다.</span></div></div>
+      <div className="operation-heading"><div><p>AI 자동채점 관리</p><h1>배정기준설정</h1><span>과목·단계를 선택하면 진도번호별 배정기준을 설정하고 처리결과를 함께 확인할 수 있습니다.</span></div></div>
 
       <section className="operation-filter-card" aria-label="운영기준 조회 조건">
         <label>과목<select value={subject} onChange={(event) => changeSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></label>
@@ -165,10 +207,26 @@ export function OperationRulePage() {
             <thead>
               <tr className="board-title-row">
                 <th colSpan={4} className="assign-part board-title part-first part-last">
-                  <strong>배정기준설정</strong>
+                  <div className="board-title-assign">
+                    <strong>배정기준설정</strong>
+                    <div className="assign-filter">
+                      <button type="button" className={filterActive ? 'active' : ''} aria-expanded={filterOpen} onClick={() => setFilterOpen(!filterOpen)}>
+                        <Filter size={13} /> 배정 필터 <b>{filterActive ? assignFilter.map((item) => resultLabels[item]).join(', ') || '없음' : '전체'}</b>
+                      </button>
+                      {filterOpen && (
+                        <div className="assign-filter-menu" role="menu">
+                          <label><input type="checkbox" checked={!filterActive} onChange={() => setAssignFilter(filterActive ? ruleResults : [])} /> (모두 선택)</label>
+                          {ruleResults.map((result) => (
+                            <label key={result}><input type="checkbox" checked={assignFilter.includes(result)} onChange={() => toggleFilter(result)} /> {resultLabels[result]}</label>
+                          ))}
+                          <button type="button" onClick={() => setFilterOpen(false)}>닫기</button>
+                        </div>
+                      )}
+                    </div>
+                    <span className="assign-filter-count">진도번호 {visibleProgresses.length}개</span>
+                  </div>
                   <small>배정 하나를 선택하고 LP 범위를 입력합니다(왼쪽 값 초과 ~ 오른쪽 값 이하). 배정이 없는 진도번호는 채점센터로 이관됩니다.</small>
                 </th>
-                <th className="board-gap" rowSpan={3} />
                 <th colSpan={5} className="result-part board-title part-first part-last">
                   <div className="board-title-result">
                     <strong>처리결과조회</strong>
@@ -201,12 +259,12 @@ export function OperationRulePage() {
               </tr>
             </thead>
             <tbody>
-              {progressNumbers.map((progress, index) => {
+              {visibleProgresses.map((progress) => {
                 const setting = draftStage[progress]
                 const changed = !sameSetting(setting, savedStage[progress])
                 const selectedResult = effectiveResult(setting)
                 const invalid = !!setting && !isValidRange(setting)
-                const item = results[index]
+                const item = results[progress - 1]
                 return (
                   <tr key={progress} className={`${changed ? 'is-changed' : ''} ${invalid ? 'has-error' : ''}`}>
                     <td className="assign-part part-first progress-cell"><b>{progress}</b>{changed && <span className="changed-dot" title="저장 전 변경" />}</td>
@@ -224,7 +282,6 @@ export function OperationRulePage() {
                         </td>
                       )
                     })}
-                    <td className="board-gap" />
                     <td className="result-part part-first">{number.format(item.total)}</td>
                     <td className="result-part">{number.format(item.auto)}<small>{rate(item.auto, item.total)}</small></td>
                     <td className="result-part">{number.format(item.review)}<small>{rate(item.review, item.total)}</small></td>
@@ -233,6 +290,7 @@ export function OperationRulePage() {
                   </tr>
                 )
               })}
+              {visibleProgresses.length === 0 && <tr><td colSpan={9} className="rule-board-empty">선택한 배정에 해당하는 진도번호가 없습니다. 배정 필터를 확인해 주세요.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -246,6 +304,7 @@ export function OperationRulePage() {
           <div>
             {changedCount > 0 && <span className="pending-count">저장 전 변경 {changedCount}건</span>}
             <button type="button" className="operation-save-button" onClick={requestSave}><Save size={15} /> 기준 저장</button>
+            <button type="button" className="operation-download-button" onClick={downloadExcel}><Download size={15} /> 다운로드</button>
           </div>
         </div>
       </section>

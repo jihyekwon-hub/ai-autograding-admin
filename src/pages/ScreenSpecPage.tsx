@@ -3,9 +3,7 @@ import { AlertCircle, BookOpen, Boxes, ChevronRight, Database, FileCode2, GitBra
 import { AdminDataProvider } from '../contexts/AdminDataProvider'
 import { ReviewerProvider } from '../contexts/ReviewerProvider'
 import { DashboardPage } from './DashboardPage'
-import { HistoryPage } from './HistoryPage'
 import { OperationRulePage } from './OperationRulePage'
-import { ReviewerManagementPage } from './ReviewerManagementPage'
 import { ReviewStatusPage } from './ReviewStatusPage'
 import {
   adminFlow,
@@ -33,9 +31,7 @@ type MarkerPosition = { left: number; top: number; width: number; height: number
 const previewComponents: Record<ScreenKey, ComponentType> = {
   dashboard: DashboardPage,
   standards: OperationRulePage,
-  reviewers: ReviewerManagementPage,
   'review-status': ReviewStatusPage,
-  history: HistoryPage,
 }
 
 const routeToScreen = new Map(screenMetadata.map((screen) => [screen.url, screen.key]))

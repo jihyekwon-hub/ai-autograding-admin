@@ -4,22 +4,18 @@ import {
   ClipboardList,
   ClipboardCheck,
   GraduationCap,
-  History,
   LayoutDashboard,
   Menu,
   FileText,
   SlidersHorizontal,
-  UserRoundCheck,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
 const navigation = [
   { to: '/dashboard', label: '대시보드', icon: LayoutDashboard },
-  { to: '/standards', label: '운영기준 설정', icon: SlidersHorizontal },
-  { to: '/reviewers', label: '검수교사 관리', icon: UserRoundCheck },
+  { to: '/standards', label: '배정기준설정', icon: SlidersHorizontal },
   { to: '/review-status', label: '수정내역', icon: ClipboardCheck },
-  { to: '/history', label: '이력관리', icon: History },
 ]
 
 export function AdminLayout() {
