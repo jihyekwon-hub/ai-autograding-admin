@@ -238,7 +238,7 @@ function ErrorDetailModal({ detail, month, onClose }: { detail: SubjectStat; mon
         <div><span>기준 초과 진도번호</span><strong>{number.format(detail.overCount)}개</strong><small>검수배정 {number.format(detail.reviewProgresses)}개 중</small></div>
       </div>
       <section className="dashboard-error-modal-stages">
-        <h3>단계별 오류율 <small>단계를 누르면 아래 목록이 그 단계로 바뀝니다</small></h3>
+        <h3>단계별 오류율 <small>단계를 누르면 진도번호 목록이 그 단계로 바뀝니다</small></h3>
         {detail.stages.map((item) => {
           const stageOver = item.rate > ERROR_RATE_THRESHOLD
           return <button type="button" key={item.stage} className={`dashboard-error-stage ${stageFilter === item.stage ? 'is-selected' : ''}`} onClick={() => setStageFilter(stageFilter === item.stage ? '전체' : item.stage)}>
@@ -325,7 +325,7 @@ function CompositionDetailModal({ detail, month, onClose }: { detail: SubjectSta
       </div>
       <section className="dashboard-error-modal-stages">
         <div className="dashboard-subject-modal-head">
-          <h3>단계별 처리 구성 <small>단계를 누르면 아래 목록이 그 단계로 바뀝니다</small></h3>
+          <h3>단계별 처리 구성 <small>단계를 누르면 진도번호 목록이 그 단계로 바뀝니다</small></h3>
           <ul className="dashboard-subject-modal-legend">{compositionTones.map((tone) => <li key={tone}><i style={{ background: toneColors[tone] }}/>{toneLabels[tone]}</li>)}</ul>
         </div>
         {detail.stages.map((item) => (
