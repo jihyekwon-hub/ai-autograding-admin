@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarDays, Check, ListChecks, Save, Search, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, Save, Search, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useAdminData } from '../contexts/adminStore'
 import { curriculumStages, MONTH_START, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
@@ -158,9 +158,6 @@ export function OperationRulePage() {
       </section>
 
       <section className="operation-panel rule-list-panel">
-        <div className="operation-panel-heading">
-          <div><ListChecks size={18} /><span><strong>{subject} {stage}단계 · 진도번호 1~{progressNumbers.length}</strong><small>진도번호마다 배정을 하나만 선택합니다. 선택하지 않은 진도번호는 채점센터로 이관됩니다.</small></span></div>
-        </div>
 
         <div className="rule-board">
           <table className="rule-board-table">
@@ -168,7 +165,7 @@ export function OperationRulePage() {
               <tr className="board-title-row">
                 <th colSpan={4} className="assign-part board-title part-first part-last">
                   <strong>배정기준설정</strong>
-                  <small>배정 하나를 선택하고 LP 기준값을 입력합니다.</small>
+                  <small>배정 하나를 선택하고 LP 기준값을 입력합니다. 기준값 미만 답안과 배정이 없는 진도번호는 채점센터로 이관됩니다.</small>
                 </th>
                 <th className="board-gap" rowSpan={3} />
                 <th colSpan={5} className="result-part board-title part-first part-last">
