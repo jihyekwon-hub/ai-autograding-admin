@@ -977,7 +977,7 @@ a { color: inherit; text-decoration: none; }
 .column-filter-button { width: 20px; height: 20px; flex: 0 0 auto; display: grid; place-items: center; padding: 0; border: 1px solid #cfd8e4; border-radius: 4px; background: #fff; color: #5a687c; cursor: pointer; }
 .column-filter-button:hover { border-color: #8fa6c2; }
 .column-filter-button.active, .column-filter-button.sorted { border-color: #2d639f; background: #eaf2fc; color: #1f4f86; }
-.column-filter-menu { position: fixed; z-index: 60; width: 240px; display: grid; gap: 4px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; box-shadow: 0 10px 28px rgba(20,39,68,.18); color: #33425a; font-size: var(--font-size-sm); font-weight: var(--font-weight-regular, 400); text-align: left; }
+.column-filter-menu { position: fixed; z-index: 60; width: 240px; max-height: calc(100vh - 16px); overflow: auto; display: grid; gap: 4px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; box-shadow: 0 10px 28px rgba(20,39,68,.18); color: #33425a; font-size: var(--font-size-sm); font-weight: var(--font-weight-regular, 400); text-align: left; }
 .column-filter-menu > button { height: 28px; display: flex; align-items: center; gap: 7px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; color: #33425a; font-size: var(--font-size-sm); cursor: pointer; }
 .column-filter-menu > button:hover, .column-filter-menu > button.on { background: #f1f6fc; color: #1f4f86; }
 .column-filter-search { display: flex; align-items: center; gap: 6px; height: 30px; margin-top: 2px; padding: 0 8px; border: 1px solid #d5dde8; border-radius: 5px; color: #8592a5; }
