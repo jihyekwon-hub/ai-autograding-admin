@@ -5,15 +5,13 @@ import { curriculumStages, MONTH_START, progressNumbers, subjects, TODAY, type S
 import {
   compressProgress,
   defaultLp,
-  hasResult,
-  isUnset,
-  lpRanges,
+  effectiveResult,
+  isValidLp,
   resultLabels,
   ruleResults,
   sameSetting,
-  settingErrors,
   stageKey,
-  type ProgressSetting,
+  subjectAssignmentCounts,
   type RuleResult,
   type RuleSettings,
   type StageSettings,
@@ -27,12 +25,11 @@ const initialPeriod: Period = { start: MONTH_START, end: TODAY }
 type ChangedStage = { subject: Subject; stage: string; progresses: number[] }
 
 const rate = (value: number, base: number) => base ? `${(value / base * 100).toFixed(1)}%` : '0.0%'
+const assignmentColors: Record<RuleResult, string> = { 자동확정: '#2f5f9e', 검수후확정: '#77a4d8', 채점센터: '#b7c3d1' }
 
-/** 이력에 남길 요약: 변경한 진도번호의 배정 선택 현황 */
+/** 이력에 남길 요약: 변경한 진도번호의 배정 현황 */
 function stageSummary(stageSettings: StageSettings, progresses: number[]) {
-  const counts = ruleResults.map((result) => `${resultLabels[result]} ${progresses.filter((progress) => hasResult(stageSettings[progress], result)).length}`).join(' · ')
-  const none = progresses.filter((progress) => isUnset(stageSettings[progress])).length
-  return `${counts} / 미선택(채점센터 이관) ${none}`
+  return ruleResults.map((result) => `${resultLabels[result]} ${progresses.filter((progress) => effectiveResult(stageSettings[progress]) === result).length}`).join(' · ')
 }
 
 export function OperationRulePage() {
@@ -61,37 +58,26 @@ export function OperationRulePage() {
     .filter((item) => item.progresses.length > 0), [draft, ruleSettings])
   const changedCount = changedStages.reduce((sum, item) => sum + item.progresses.length, 0)
 
+  // 과목 전체(모든 단계)의 배정 비중: 저장된 기준 기준
+  const subjectCounts = useMemo(() => subjectAssignmentCounts(ruleSettings, subject), [ruleSettings, subject])
+  const subjectTotal = ruleResults.reduce((sum, result) => sum + subjectCounts[result], 0)
+  const autoEnd = subjectTotal ? subjectCounts.자동확정 / subjectTotal * 100 : 0
+  const reviewEnd = subjectTotal ? (subjectCounts.자동확정 + subjectCounts.검수후확정) / subjectTotal * 100 : 0
+  const pieBackground = `conic-gradient(${assignmentColors.자동확정} 0 ${autoEnd}%, ${assignmentColors.검수후확정} ${autoEnd}% ${reviewEnd}%, ${assignmentColors.채점센터} ${reviewEnd}% 100%)`
+
   // 처리결과는 저장된 기준과 조회기간으로 집계한다(편집 중인 기준은 반영하지 않음).
   const results = useMemo(() => progressNumbers.map((progress) => getProgressResult(subject, stage, progress, savedStage[progress], period.start, period.end)), [subject, stage, savedStage, period])
-  const totals = results.reduce((sum, item) => ({
-    total: sum.total + item.total,
-    auto: sum.auto + item.auto,
-    review: sum.review + item.review,
-    center: sum.center + item.center,
-    corrected: sum.corrected + item.corrected,
-  }), { total: 0, auto: 0, review: 0, center: 0, corrected: 0 })
-  const aiCount = progressNumbers.filter((progress) => hasResult(draftStage[progress], '자동확정') || hasResult(draftStage[progress], '검수후확정')).length
+  const totals = results.reduce((sum, item) => ({ total: sum.total + item.total, review: sum.review + item.review, corrected: sum.corrected + item.corrected }), { total: 0, review: 0, corrected: 0 })
 
   const changeSubject = (next: Subject) => {
     setSubject(next)
     setStage(curriculumStages[next][0])
   }
 
-  const updateProgress = (progress: number, update: (setting: ProgressSetting) => ProgressSetting) => {
-    setDraft((current) => {
-      const stageSettings = current[key] ?? {}
-      return { ...current, [key]: { ...stageSettings, [progress]: update({ ...(stageSettings[progress] ?? {}) }) } }
-    })
+  const updateProgress = (progress: number, result: RuleResult, lp: number) => {
+    setDraft((current) => ({ ...current, [key]: { ...(current[key] ?? {}), [progress]: { result, lp } } }))
     setMessage(null)
   }
-
-  const toggleResult = (progress: number, result: RuleResult, checked: boolean) => updateProgress(progress, (setting) => {
-    if (checked) setting[result] = defaultLp[result]
-    else delete setting[result]
-    return setting
-  })
-
-  const setLp = (progress: number, result: RuleResult, value: number) => updateProgress(progress, (setting) => ({ ...setting, [result]: value }))
 
   const applyPeriod = () => {
     if (!periodDraft.start || !periodDraft.end || periodDraft.start > periodDraft.end) { setPeriodError('시작일은 종료일보다 늦을 수 없습니다.'); return }
@@ -104,7 +90,8 @@ export function OperationRulePage() {
     const problems: string[] = []
     changedStages.forEach((item) => {
       item.progresses.forEach((progress) => {
-        settingErrors(draft[stageKey(item.subject, item.stage)]?.[progress]).forEach((error) => problems.push(`${item.subject} ${item.stage} 진도 ${progress}: ${error}`))
+        const setting = draft[stageKey(item.subject, item.stage)]?.[progress]
+        if (setting && !isValidLp(setting.lp)) problems.push(`${item.subject} ${item.stage} 진도 ${progress}: LP는 0~100 정수`)
       })
     })
     if (problems.length) {
@@ -146,103 +133,94 @@ export function OperationRulePage() {
       <section className="operation-filter-card" aria-label="운영기준 조회 조건">
         <label>과목<select value={subject} onChange={(event) => changeSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></label>
         <label>단계<select value={stage} onChange={(event) => setStage(event.target.value)}>{curriculumStages[subject].map((item) => <option key={item}>{item}</option>)}</select></label>
+        <div className="operation-subject-pie">
+          <div className="operation-subject-pie-chart" style={{ background: pieBackground }} role="img" aria-label={ruleResults.map((result) => `${resultLabels[result]} ${rate(subjectCounts[result], subjectTotal)}`).join(', ')} />
+          <div className="operation-subject-pie-legend">
+            <strong>{subject} 배정 비중 <small>전체 단계 · 진도번호 {number.format(subjectTotal)}개</small></strong>
+            <ul>
+              {ruleResults.map((result) => (
+                <li key={result}><i style={{ background: assignmentColors[result] }} /><span>{resultLabels[result]}</span><b>{rate(subjectCounts[result], subjectTotal)}</b><small>{number.format(subjectCounts[result])}개</small></li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </section>
 
       <section className="operation-panel rule-list-panel">
         <div className="operation-panel-heading">
-          <div><ListChecks size={18} /><span><strong>{subject} {stage}단계 · 진도번호 1~{progressNumbers.length}</strong><small>AI 채점 진도번호 {aiCount}개 · 배정을 선택하지 않은 진도번호와 LP 구간은 채점센터로 이관됩니다.</small></span></div>
+          <div><ListChecks size={18} /><span><strong>{subject} {stage}단계 · 진도번호 1~{progressNumbers.length}</strong><small>진도번호마다 배정을 하나만 선택합니다. 선택하지 않은 진도번호는 채점센터로 이관됩니다.</small></span></div>
         </div>
 
         <div className="rule-board">
-          <div className="rule-board-inner">
-            <div className="rule-board-head rule-board-head-assign">
-              <strong>배정기준설정</strong>
-              <small>배정을 체크하고 LP 기준값(이상)을 입력합니다.</small>
-            </div>
-            <div className="rule-board-head rule-board-head-result">
-              <strong>처리결과조회</strong>
-              <div className="rule-period">
-                <CalendarDays size={14} />
-                <input type="date" aria-label="처리결과 조회 시작일" value={periodDraft.start} max={TODAY} onChange={(event) => setPeriodDraft({ ...periodDraft, start: event.target.value })} />
-                <span>~</span>
-                <input type="date" aria-label="처리결과 조회 종료일" value={periodDraft.end} min={periodDraft.start} max={TODAY} onChange={(event) => setPeriodDraft({ ...periodDraft, end: event.target.value })} />
-                <button type="button" onClick={applyPeriod}><Search size={13} /> 조회</button>
-              </div>
-              {periodError
-                ? <em className="rule-period-note error">{periodError}</em>
-                : <em className="rule-period-note">{period.start} ~ {period.end} · 전체 {number.format(totals.total)}장 · 오류율 {rate(totals.corrected, totals.review)}</em>}
-            </div>
-
-            <div className="rule-board-scroll">
-              <table className="rule-assign-table">
-                <thead>
-                  <tr>
-                    <th rowSpan={2}>진도번호</th>
-                    <th colSpan={2} className="group-ai">AI 채점</th>
-                    <th className="group-center">기존 채점</th>
-                    <th rowSpan={2}>상태</th>
-                  </tr>
-                  <tr>
-                    {ruleResults.map((result) => <th key={result}>{resultLabels[result]}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {progressNumbers.map((progress) => {
-                    const setting = draftStage[progress]
-                    const changed = !sameSetting(setting, savedStage[progress])
-                    const errors = settingErrors(setting)
-                    const ranges = lpRanges(setting)
-                    return (
-                      <tr key={progress} className={`${changed ? 'is-changed' : ''} ${errors.length ? 'has-error' : ''}`}>
-                        <td><b>{progress}</b></td>
-                        {ruleResults.map((result) => {
-                          const selected = hasResult(setting, result)
-                          const range = ranges[result]
-                          return (
-                            <td key={result} className={`assign-cell ${selected ? 'is-selected' : ''}`}>
-                              <label className="assign-check">
-                                <input type="checkbox" checked={selected} aria-label={`진도 ${progress} ${resultLabels[result]}`} onChange={(event) => toggleResult(progress, result, event.target.checked)} />
-                              </label>
-                              <input className="assign-lp" type="number" min="0" max="100" disabled={!selected} aria-label={`진도 ${progress} ${resultLabels[result]} LP 기준값`} value={selected ? setting?.[result] : ''} placeholder="LP" onChange={(event) => setLp(progress, result, Number(event.target.value))} />
-                              <span className="assign-range">{selected && range ? `${range.min}~${range.max}` : ''}</span>
-                            </td>
-                          )
-                        })}
-                        <td className="row-state">
-                          {errors.length > 0 && <span className="state-badge error" title={errors.join(', ')}><AlertTriangle size={13} /> {errors[0]}</span>}
-                          {errors.length === 0 && changed && <span className="state-badge changed">변경 · 저장 전</span>}
-                          {errors.length === 0 && !changed && isUnset(setting) && <span className="state-badge center-only">전량 채점센터</span>}
+          <table className="rule-board-table">
+            <thead>
+              <tr className="board-title-row">
+                <th colSpan={4} className="assign-part board-title part-first part-last">
+                  <strong>배정기준설정</strong>
+                  <small>배정 하나를 선택하고 LP 기준값을 입력합니다.</small>
+                </th>
+                <th className="board-gap" rowSpan={3} />
+                <th colSpan={5} className="result-part board-title part-first part-last">
+                  <div className="board-title-result">
+                    <strong>처리결과조회</strong>
+                    <div className="rule-period">
+                      <CalendarDays size={14} />
+                      <input type="date" aria-label="처리결과 조회 시작일" value={periodDraft.start} max={TODAY} onChange={(event) => setPeriodDraft({ ...periodDraft, start: event.target.value })} />
+                      <span>~</span>
+                      <input type="date" aria-label="처리결과 조회 종료일" value={periodDraft.end} min={periodDraft.start} max={TODAY} onChange={(event) => setPeriodDraft({ ...periodDraft, end: event.target.value })} />
+                      <button type="button" onClick={applyPeriod}><Search size={13} /> 조회</button>
+                    </div>
+                  </div>
+                  {periodError
+                    ? <small className="rule-period-note error">{periodError}</small>
+                    : <small className="rule-period-note">{period.start} ~ {period.end} · 전체 {number.format(totals.total)}장 · 오류율 {rate(totals.corrected, totals.review)}</small>}
+                </th>
+              </tr>
+              <tr className="board-group-row">
+                <th rowSpan={2} className="assign-part part-first">진도번호</th>
+                <th colSpan={2} className="assign-part group-ai">AI 채점</th>
+                <th className="assign-part group-center part-last">기존 채점</th>
+                <th rowSpan={2} className="result-part part-first">전체 제출</th>
+                <th colSpan={2} className="result-part group-ai">AI 채점</th>
+                <th rowSpan={2} className="result-part">채점센터</th>
+                <th rowSpan={2} className="result-part part-last">오류율</th>
+              </tr>
+              <tr className="board-sub-row">
+                {ruleResults.map((result) => <th key={result} className={`assign-part ${result === '채점센터' ? 'part-last' : ''}`}>{resultLabels[result]}</th>)}
+                <th className="result-part">자동확정</th>
+                <th className="result-part">검수후확정</th>
+              </tr>
+            </thead>
+            <tbody>
+              {progressNumbers.map((progress, index) => {
+                const setting = draftStage[progress]
+                const changed = !sameSetting(setting, savedStage[progress])
+                const selectedResult = effectiveResult(setting)
+                const invalid = !!setting && !isValidLp(setting.lp)
+                const item = results[index]
+                return (
+                  <tr key={progress} className={`${changed ? 'is-changed' : ''} ${invalid ? 'has-error' : ''}`}>
+                    <td className="assign-part part-first progress-cell"><b>{progress}</b>{changed && <span className="changed-dot" title="저장 전 변경" />}</td>
+                    {ruleResults.map((result) => {
+                      const selected = selectedResult === result
+                      return (
+                        <td key={result} className={`assign-part assign-cell ${selected ? 'is-selected' : ''} ${result === '채점센터' ? 'part-last' : ''}`}>
+                          <input type="radio" name={`assign-${progress}`} checked={selected} aria-label={`진도 ${progress} ${resultLabels[result]}`} onChange={() => updateProgress(progress, result, setting?.result === result ? setting.lp : defaultLp[result])} />
+                          <input className={`assign-lp ${selected && invalid ? 'invalid' : ''}`} type="number" min="0" max="100" disabled={!selected} aria-label={`진도 ${progress} ${resultLabels[result]} LP 기준값`} value={selected ? setting?.lp ?? defaultLp[result] : ''} placeholder="LP" onChange={(event) => updateProgress(progress, result, Number(event.target.value))} />
                         </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-
-              <table className="rule-result-table">
-                <thead>
-                  <tr>
-                    <th rowSpan={2}>전체 제출</th>
-                    <th colSpan={2} className="group-ai">AI 채점</th>
-                    <th rowSpan={2}>채점센터</th>
-                    <th rowSpan={2}>오류율</th>
+                      )
+                    })}
+                    <td className="board-gap" />
+                    <td className="result-part part-first">{number.format(item.total)}</td>
+                    <td className="result-part">{number.format(item.auto)}<small>{rate(item.auto, item.total)}</small></td>
+                    <td className="result-part">{number.format(item.review)}<small>{rate(item.review, item.total)}</small></td>
+                    <td className="result-part">{number.format(item.center)}<small>{rate(item.center, item.total)}</small></td>
+                    <td className="result-part part-last">{item.review ? <>{rate(item.corrected, item.review)}<small>{number.format(item.corrected)}장</small></> : <span className="result-empty">-</span>}</td>
                   </tr>
-                  <tr><th>자동확정</th><th>검수후확정</th></tr>
-                </thead>
-                <tbody>
-                  {results.map((item, index) => (
-                    <tr key={progressNumbers[index]}>
-                      <td><b>{number.format(item.total)}</b></td>
-                      <td>{number.format(item.auto)}<small>{rate(item.auto, item.total)}</small></td>
-                      <td>{number.format(item.review)}<small>{rate(item.review, item.total)}</small></td>
-                      <td>{number.format(item.center)}<small>{rate(item.center, item.total)}</small></td>
-                      <td>{item.review ? <>{rate(item.corrected, item.review)}<small>{number.format(item.corrected)}장</small></> : <span className="result-empty">-</span>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
 
         <div className="rule-editor-footer">
