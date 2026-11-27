@@ -1,6 +1,6 @@
 export type SpecificationStatus = '확정' | '협의 필요' | '개발 확인 필요'
 
-export type ScreenKey = 'dashboard' | 'performance' | 'standards' | 'reviewers' | 'review-status' | 'history'
+export type ScreenKey = 'dashboard' | 'standards' | 'reviewers' | 'review-status' | 'history'
 
 export type ScreenMetadata = {
   key: ScreenKey

@@ -1,9 +1,13 @@
 import { Building2, CheckCircle2, Layers3, Sparkles, UserCheck, type LucideIcon } from 'lucide-react'
-import { MONTH_START, TODAY } from '../data/curriculum'
+import { useState } from 'react'
+import { TODAY } from '../data/curriculum'
 import { performanceData } from '../data/performance'
 
 const number = new Intl.NumberFormat('ko-KR')
-const periodLabel = `${MONTH_START.slice(5).replace('-', '.')} ~ ${TODAY.slice(5).replace('-', '.')} 누적`
+// 기준월 선택지: 기준일(TODAY)이 속한 해의 1월 ~ 기준일이 속한 달
+const currentMonth = TODAY.slice(0, 7)
+const monthOptions = Array.from({ length: Number(TODAY.slice(5, 7)) }, (_, index) => `${TODAY.slice(0, 4)}-${String(index + 1).padStart(2, '0')}`)
+const monthLabel = (month: string) => `${Number(month.slice(0, 4))}년 ${Number(month.slice(5, 7))}월`
 const percent = (value: number, base: number) => base ? value / base * 100 : 0
 
 type Tone = 'total' | 'ai' | 'center' | 'auto' | 'review'
@@ -12,9 +16,10 @@ type Kpi = { label: string; value: number; share: number; icon: LucideIcon; tone
 type Slice = { label: string; value: number; tone: Tone }
 
 export function DashboardPage() {
-  // 대시보드는 월 단위(이번 달 1일 ~ 기준일 누적)로 집계한다.
+  // 대시보드는 선택한 기준월 단위로 집계한다(기준일이 속한 달은 기준일까지 누적).
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const month = performanceData
-    .filter((row) => row.date >= MONTH_START && row.date <= TODAY)
+    .filter((row) => row.date.startsWith(selectedMonth) && row.date <= TODAY)
     .reduce((sum, row) => ({
       auto: sum.auto + row.autoConfirmed,
       review: sum.review + row.reviewConfirmed,
@@ -40,7 +45,7 @@ export function DashboardPage() {
     <div className="dashboard-heading"><div><p>AI 자동채점 관리</p><h1>대시보드</h1><span>자동채점 운영 현황과 주요 지표를 월 단위로 확인합니다.</span></div></div>
     <div className="dashboard-section-head">
       <h2 className="dashboard-section-label">주요 운영 지표</h2>
-      <span className="dashboard-period-badge">월간 · {periodLabel}</span>
+      <label className="dashboard-month-select">기준월<select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>{monthOptions.map((item) => <option key={item} value={item}>{monthLabel(item)}</option>)}</select></label>
     </div>
     <section className="dashboard-split">
       <SplitPanel
