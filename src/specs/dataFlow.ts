@@ -7,7 +7,7 @@ export const gradingFlow: FlowGroup[] = [
     { id: 'ai', label: 'AI 채점', note: '정오답 · LP · 인식값', tone: 'process' },
   ] },
   { title: 'Routing', nodes: [
-    { id: 'rule', label: '운영기준 / Routing Rule', note: '과목·단계·진도·판정·LP', tone: 'decision' },
+    { id: 'rule', label: '운영기준 / Routing Rule', note: '과목·단계·진도번호 → 배정 · LP 범위', tone: 'decision' },
     { id: 'auto', label: '자동확정', tone: 'result' },
     { id: 'review', label: '검수후확정', tone: 'result' },
     { id: 'center', label: '채점센터', tone: 'result' },
@@ -21,7 +21,7 @@ export const gradingFlow: FlowGroup[] = [
 ]
 
 export const adminFlow: FlowGroup[] = [
-  { title: '배정기준', nodes: [{ id: 'std', label: '배정기준설정', tone: 'admin' }, { id: 'routing', label: 'Routing Rule', tone: 'decision' }, { id: 'dash', label: '대시보드', tone: 'admin' }] },
+  { title: '배정기준', nodes: [{ id: 'std', label: '기준설정', tone: 'admin' }, { id: 'routing', label: 'Routing Rule', tone: 'decision' }, { id: 'dash', label: '대시보드', tone: 'admin' }] },
   { title: '검수 운영', nodes: [{ id: 'assign', label: '검수 대상 배정', tone: 'process' }, { id: 'review-ui', label: '검수화면', tone: 'process' }, { id: 'status', label: '수정내역', tone: 'admin' }] },
 ]
 
@@ -34,6 +34,8 @@ export const screenDataFlows: Record<string, string[]> = {
 export const interactionMap = [
   ['수정내역 화면 보기', '검수 완료 화면 Modal'],
   ['기준설정 열 필터', '배정기준설정·처리결과조회 행 동시 필터·정렬'],
-  ['배정기준설정 기준 저장', '저장 확인 팝업 → 기준 반영'],
-  ['배정기준설정 다운로드', '배정기준설정 + 처리결과조회 엑셀(.xlsx) 파일'],
+  ['기준설정 기준 저장', '저장 확인 팝업 → 기준 반영 → 대시보드 처리 구성에 반영'],
+  ['기준설정 다운로드', '배정기준설정 + 처리결과조회 엑셀(.xlsx) 파일'],
+  ['대시보드 과목별 오류율 막대', '오류율 상세 팝업 → 기준설정(과목·단계·기준월, 오류율 높은 순)'],
+  ['대시보드 과목별 처리 구성 막대', '처리 구성 상세 팝업 → 기준설정(과목·단계·기준월, 전체 제출 많은 순)'],
 ] as const

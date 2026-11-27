@@ -1,7 +1,7 @@
 export const readmeSections = [
   { title: '프로젝트 목적', items: ['본 프로젝트는 AI 자동채점 운영 시스템 개발을 위한 Reference UI Prototype이다.', '현재 운영 화면과 mock interaction을 개발팀이 기능·데이터·연계 관점에서 이해하도록 돕는다.'] },
   { title: '중요', items: ['현재 구현된 화면, mock data, field name, route, 계산 예시는 개발 이해를 위한 Reference이다.', '실제 Production DB Schema나 API Specification 확정안이 아니다.'] },
-  { title: '프로토타입 구현 범위', items: ['화면 Navigation', '조회 및 Filter', '운영기준·검수교사 설정', 'Modal', 'mock interaction 및 mock data', 'validation 예시'] },
+  { title: '프로토타입 구현 범위', items: ['화면 Navigation', '조회 및 엑셀형 열 Filter·정렬', '기준설정(진도번호 배정·LP 범위) 저장', '대시보드 상세 팝업 → 기준설정 이동', 'Modal', '엑셀(.xlsx) 다운로드', 'mock interaction 및 mock data', 'validation 예시'] },
   { title: '미구현 범위', items: ['실제 DB와 AI Model API', '인증·권한·개인정보 처리', '실제 검수 배정 Engine', '실제 수당 정산', '실제 회원 데이터', '실제 채점센터 Interface'] },
   { title: '실제 개발 시 필요한 연계', items: ['회원 학습지 제출 데이터', '학습지 이미지 Storage', 'AI 채점 결과 및 LP', 'Routing Engine와 운영기준 DB', 'Reviewer Master / Review Assignment / Review Result', 'Admin User/Auth와 History Log', '기존 채점센터 Interface'] },
 ]
@@ -22,6 +22,8 @@ export const openIssues = [
   '회원 개인정보 Masking 범위',
   '채점센터 이관 API/Interface',
   '실적 Dashboard 집계 방식: 실시간 / 주기 Batch',
+  '대시보드 처리 구성 산정: 실제 Routing 결과 집계 / 저장된 배정 기준 추정(프로토타입은 배정 기준 추정)',
+  '오류율 관리 기준값(현재 3.0%)과 과목·단계별 차등 여부',
   '운영기준 관리 주체: Routing API / Admin DB',
   '검수 수정건의 Ground Truth 활용 여부',
   'AI 모델 개선용 데이터 Pipeline 연계 여부',

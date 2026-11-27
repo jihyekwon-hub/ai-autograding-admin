@@ -10,12 +10,13 @@ export const dataDictionary: DictionaryEntry[] = [
   { category: 'AI 판정', code: 'INCORRECT', display: '오답', definition: 'AI가 답안을 오답으로 판정한 상태.', status: '확정' },
   { category: 'AI 신뢰도', code: 'lp', display: 'LP 0~100', definition: 'AI 판정 신뢰도 계열 값. 정확한 모델 의미·산출식·보정 여부는 AI 개발팀 확인이 필요하다.', status: '개발 확인 필요' },
   { category: 'Routing', code: 'AI_GRADED', display: 'AI 자동채점', definition: '운영기준상 AI 채점 대상(자동확정·검수후확정)으로 분기된 답안지. AI 자동채점 = 자동확정 + 검수후확정, 전체 = AI 자동채점 + 채점센터.', status: '확정' },
-  { category: 'Routing', code: 'AUTO_CONFIRM', display: '자동확정', definition: '운영기준을 통과해 별도 검수 없이 최종 결과로 확정되는 처리 경로. 배정기준설정 화면에서는 "자동배정"으로 표기.', status: '확정' },
-  { category: 'Routing', code: 'REVIEW_CONFIRM', display: '검수후확정', definition: '검수교사 확인 후 최종 결과를 확정하는 처리 경로. 배정기준설정 화면에서는 "검수배정"으로 표기.', status: '확정' },
-  { category: 'Routing', code: 'CENTER', display: '채점센터', definition: '기존 채점센터 또는 별도 수동 처리 시스템으로 이관되는 경로. 배정기준설정 화면에서는 "채점배정"으로 표기.', status: '개발 확인 필요' },
+  { category: 'Routing', code: 'AUTO_CONFIRM', display: '자동확정', definition: '운영기준을 통과해 별도 검수 없이 최종 결과로 확정되는 처리 경로. 기준설정 화면에서는 "자동배정"으로 표기.', status: '확정' },
+  { category: 'Routing', code: 'REVIEW_CONFIRM', display: '검수후확정', definition: '검수교사 확인 후 최종 결과를 확정하는 처리 경로. 기준설정 화면에서는 "검수배정"으로 표기.', status: '확정' },
+  { category: 'Routing', code: 'CENTER', display: '채점센터', definition: '기존 채점센터 또는 별도 수동 처리 시스템으로 이관되는 경로. 기준설정 화면에서는 "채점배정"으로 표기.', status: '개발 확인 필요' },
   { category: '운영기준', code: 'CENTER_ONLY', display: '배정 미선택', definition: '진도번호에 배정을 선택하지 않은 상태. 별도 미설정 상태로 관리하지 않고 채점센터로 이관한다(샘플 데이터는 모든 진도번호에 배정 하나가 선택되어 있음).', status: '확정' },
-  { category: '운영기준', code: 'completed', display: '처리결과', definition: '진도번호별로 회원 발송까지 모든 작업이 완료된 장 수. 배정기준설정의 처리결과조회 표에서 전체 제출·자동확정·검수후확정·채점센터 수와 비율로 조회기간 기준 실시간 집계.', status: '개발 확인 필요' },
+  { category: '운영기준', code: 'completed', display: '처리결과', definition: '진도번호별로 회원 발송까지 모든 작업이 완료된 장 수. 기준설정 화면의 처리결과조회 표에서 전체 제출·자동확정·검수후확정·채점센터 수와 비율로 조회기간 기준 실시간 집계.', status: '개발 확인 필요' },
   { category: '운영기준', code: 'errorRate', display: '오류율', definition: '검수후확정 장 수 중 검수교사가 AI 판정을 수정한 뒤 확정한 장 수의 비율(%).', status: '협의 필요' },
+  { category: '운영기준', code: 'ERROR_RATE_THRESHOLD', display: '관리 기준 3.0%', definition: '오류율이 이 값을 넘으면 주의. 대시보드 오류율 모니터링·상세 팝업의 주의 표시와 기준 초과 진도번호 수에 쓴다(화면 표시값 소수 첫째 자리로 비교).', status: '협의 필요' },
   { category: '검수 수정', code: 'modified', display: '수정 건', definition: 'AI 최초 정오답 판정과 검수교사의 최종 정오답 판정이 다른 문항.', status: '확정' },
 ]
 
