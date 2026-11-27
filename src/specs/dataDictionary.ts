@@ -13,9 +13,9 @@ export const dataDictionary: DictionaryEntry[] = [
   { category: 'Routing', code: 'AUTO_CONFIRM', display: '자동확정', definition: '운영기준을 통과해 별도 검수 없이 최종 결과로 확정되는 처리 경로. 운영기준 설정 화면에서는 "자동배정"으로 표기.', status: '확정' },
   { category: 'Routing', code: 'REVIEW_CONFIRM', display: '검수후확정', definition: '검수교사 확인 후 최종 결과를 확정하는 처리 경로. 운영기준 설정 화면에서는 "검수배정"으로 표기.', status: '확정' },
   { category: 'Routing', code: 'CENTER', display: '채점센터', definition: '기존 채점센터 또는 별도 수동 처리 시스템으로 이관되는 경로. 운영기준 설정 화면에서는 "채점배정"으로 표기.', status: '개발 확인 필요' },
-  { category: '운영기준', code: 'UNSET', display: '미설정', definition: '과목·단계·진도번호에 자동확정·검수후확정·채점센터 중 어떤 처리결과의 LP 범위도 없는 상태. 운영기준 설정 화면에서 경고 아이콘과 별도 목록으로 표시한다.', status: '협의 필요' },
-  { category: '운영기준', code: 'completed', display: '처리결과', definition: '진도번호·배정별로 회원 발송까지 모든 작업이 완료된 장 수. 운영기준 설정 화면에서 조회기간 기준으로 실시간 집계.', status: '개발 확인 필요' },
-  { category: '운영기준', code: 'correctionRate', display: '수정율', definition: '검수배정 처리결과 중 검수교사가 AI 판정을 수정한 뒤 확정한 장 수의 비율(%).', status: '협의 필요' },
+  { category: '운영기준', code: 'CENTER_ONLY', display: '배정 미선택', definition: '진도번호에 어떤 배정도 선택하지 않은 상태. 별도 미설정 상태로 관리하지 않고 전량 채점센터로 이관한다.', status: '확정' },
+  { category: '운영기준', code: 'completed', display: '처리결과', definition: '진도번호별로 회원 발송까지 모든 작업이 완료된 장 수. 운영기준 설정의 처리결과조회 표에서 전체 제출·자동확정·검수후확정·채점센터 수와 비율로 조회기간 기준 실시간 집계.', status: '개발 확인 필요' },
+  { category: '운영기준', code: 'errorRate', display: '오류율', definition: '검수후확정 장 수 중 검수교사가 AI 판정을 수정한 뒤 확정한 장 수의 비율(%).', status: '협의 필요' },
   { category: '검수 수정', code: 'modified', display: '수정 건', definition: 'AI 최초 정오답 판정과 검수교사의 최종 정오답 판정이 다른 문항.', status: '확정' },
 ]
 
@@ -23,7 +23,7 @@ export const referenceEntities: ReferenceEntity[] = [
   { name: 'SUBMISSION', description: '회원 학습지 제출 Reference Entity', fields: ['submissionId', 'memberId', 'subject', 'level', 'progressNo', 'submittedAt'] },
   { name: 'AI_GRADING_RESULT', description: 'AI 문항별 채점 결과 Reference Entity', fields: ['submissionId', 'questionNo', 'aiResult', 'lp', 'recognizedValue'] },
   { name: 'ROUTING_RESULT', description: '운영기준 적용 결과 Reference Entity', fields: ['submissionId', 'routingStatus', 'appliedRuleId', 'routedAt'] },
-  { name: 'OPERATING_RULE', description: '과목·단계·진도번호별로 처리결과(자동확정·검수후확정·채점센터)마다 정답/오답 LP 범위를 저장하는 분기 기준 Reference Entity. 한 진도번호에 처리결과·정오답 조합별 최대 6개 범위가 존재할 수 있다.', fields: ['subject', 'level', 'progressNo', 'routingResult', 'aiResult', 'lpMin', 'lpMax', 'updatedAt', 'updatedBy'] },
+  { name: 'OPERATING_RULE', description: '과목·단계·진도번호별로 선택한 배정(자동확정·검수후확정·채점센터)과 배정별 LP 기준값(이상)을 저장하는 분기 기준 Reference Entity. LP 범위는 기준값으로 계산하며 정답/오답 구분이 없다.', fields: ['subject', 'level', 'progressNo', 'routingResult', 'lpMin', 'updatedAt', 'updatedBy'] },
   { name: 'REVIEWER', description: '검수교사 Master Reference Entity', fields: ['reviewerId', 'reviewerName', 'workingHours', 'status'] },
   { name: 'REVIEW_ASSIGNMENT', description: '검수교사별 복수 담당 범위와 물량 Reference Entity', fields: ['assignmentId', 'reviewerId', 'subject', 'level', 'progressStart', 'progressEnd', 'allocatedSheets'] },
   { name: 'REVIEW_RESULT', description: '문항별 검수 확정 결과 Reference Entity', fields: ['submissionId', 'questionNo', 'reviewerId', 'aiResult', 'finalResult', 'modified', 'confirmedAt'] },

@@ -1,10 +1,9 @@
-import { Building2, CalendarDays, CheckCircle2, Layers3, Sparkles, UserCheck, type LucideIcon } from 'lucide-react'
+import { Building2, CheckCircle2, Layers3, Sparkles, UserCheck, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { MONTH_START, TODAY } from '../data/curriculum'
 import { performanceData } from '../data/performance'
 
 const number = new Intl.NumberFormat('ko-KR')
-const monthLabel = `${Number(TODAY.slice(0, 4))}년 ${Number(TODAY.slice(5, 7))}월`
 const periodLabel = `${MONTH_START.slice(5).replace('-', '.')} ~ ${TODAY.slice(5).replace('-', '.')} 누적`
 const percent = (value: number, base: number) => base ? value / base * 100 : 0
 
@@ -38,7 +37,7 @@ export function DashboardPage() {
   ]
 
   return <div className="page dashboard-page">
-    <div className="dashboard-heading"><div><p>AI 자동채점 관리</p><h1>대시보드</h1><span>자동채점 운영 현황과 주요 지표를 월 단위로 확인합니다.</span></div><div className="dashboard-date"><CalendarDays size={16}/> {monthLabel} 월간 실적</div></div>
+    <div className="dashboard-heading"><div><p>AI 자동채점 관리</p><h1>대시보드</h1><span>자동채점 운영 현황과 주요 지표를 월 단위로 확인합니다.</span></div></div>
     <div className="dashboard-section-head">
       <h2 className="dashboard-section-label">주요 운영 지표</h2>
       <span className="dashboard-period-badge">월간 · {periodLabel}</span>
