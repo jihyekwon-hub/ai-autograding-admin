@@ -40,9 +40,11 @@ function createPerformanceData(): PerformanceRecord[] {
         // 초기 운영 단계 예시: AI 자동채점(자동확정+검수후확정)보다 채점센터 이관이 많고,
         // 2026년 1월부터 달마다 AI 자동채점 비중이 조금씩 늘어난다.
         const rampMonths = Math.max(0, (date.getUTCFullYear() - 2026) * 12 + date.getUTCMonth())
-        const autoRate = 0.17 + rampMonths * 0.006 + ((dayIndex + stageIndex) % 8) * 0.005
-        const reviewRate = 0.12 + rampMonths * 0.003 + ((dayIndex + subjectIndex) % 6) * 0.004
-        const centerRate = 0.56 - rampMonths * 0.009 + ((dayIndex + stageIndex * 2) % 5) * 0.006
+        // 과목별 AI 적용 정도 차이(예시): 수학이 가장 높고 국어가 가장 낮다.
+        const subjectBias = ({ 수학: 0.06, 영어: 0.03, 과학: -0.02, 국어: -0.05 } as Record<string, number>)[subject] ?? 0
+        const autoRate = 0.17 + subjectBias * 0.6 + rampMonths * 0.006 + ((dayIndex + stageIndex) % 8) * 0.005
+        const reviewRate = 0.12 + subjectBias * 0.4 + rampMonths * 0.003 + ((dayIndex + subjectIndex) % 6) * 0.004
+        const centerRate = 0.56 - subjectBias - rampMonths * 0.009 + ((dayIndex + stageIndex * 2) % 5) * 0.006
         const autoConfirmed = Math.round(total * autoRate)
         const reviewConfirmed = Math.round(total * reviewRate)
         const gradingCenter = Math.round(total * centerRate)

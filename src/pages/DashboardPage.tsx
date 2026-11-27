@@ -1,6 +1,6 @@
 import { Building2, CheckCircle2, Layers3, Sparkles, UserCheck, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
-import { TODAY } from '../data/curriculum'
+import { subjects, TODAY, type Subject } from '../data/curriculum'
 import { performanceData } from '../data/performance'
 
 const number = new Intl.NumberFormat('ko-KR')
@@ -14,6 +14,8 @@ type Tone = 'total' | 'ai' | 'center' | 'auto' | 'review'
 /** share: 기준 대비 비율(%), sum: 아래 두 박스의 합계 박스 여부 */
 type Kpi = { label: string; value: number; share: number; icon: LucideIcon; tone: Tone; sum?: boolean }
 type Slice = { label: string; value: number; tone: Tone }
+// 과목별 처리 구성의 표시 순서(기준설정 화면의 과목별 배정 비중과 같은 순서)
+const subjectOrder: Subject[] = ['국어', '수학', '영어', '과학'].filter((item): item is Subject => (subjects as readonly string[]).includes(item))
 
 export function DashboardPage() {
   // 대시보드는 선택한 기준월 단위로 집계한다(기준일이 속한 달은 기준일까지 누적).
@@ -25,6 +27,14 @@ export function DashboardPage() {
       review: sum.review + row.reviewConfirmed,
       center: sum.center + row.gradingCenter,
     }), { auto: 0, review: 0, center: 0 })
+
+  // 과목별 처리 구성: 같은 기준월의 실제 처리 답안 장수
+  const subjectRows = subjectOrder.map((subject) => {
+    const sums = performanceData
+      .filter((row) => row.subject === subject && row.date.startsWith(selectedMonth) && row.date <= TODAY)
+      .reduce((sum, row) => ({ auto: sum.auto + row.autoConfirmed, review: sum.review + row.reviewConfirmed, center: sum.center + row.gradingCenter }), { auto: 0, review: 0, center: 0 })
+    return { subject, ...sums, total: sums.auto + sums.review + sums.center }
+  })
 
   // 전체 = AI 자동채점 + 채점센터, AI 자동채점 = 자동확정 + 검수후확정
   const ai = month.auto + month.review
@@ -61,6 +71,28 @@ export function DashboardPage() {
         centerLabel="AI 자동채점"
         slices={[{ label: '자동확정', value: month.auto, tone: 'auto' }, { label: '검수후확정', value: month.review, tone: 'review' }]}
       />
+    </section>
+    <section className="dashboard-subject-card">
+      <header>
+        <div><strong>과목별 처리 구성 <small>(답안 장수)</small></strong><span>기준월에 실제 처리된 답안지를 과목별로 나눈 비중</span></div>
+        <ul>
+          {(['auto', 'review', 'center'] as const).map((tone) => <li key={tone}><i style={{ background: toneColors[tone] }}/>{tone === 'auto' ? '자동확정' : tone === 'review' ? '검수후확정' : '채점센터'}</li>)}
+        </ul>
+      </header>
+      <div className="dashboard-subject-rows">
+        {subjectRows.map((row) => (
+          <div className="dashboard-subject-row" key={row.subject}>
+            <strong>{row.subject}</strong>
+            <div className="dashboard-subject-bar" role="img" aria-label={`${row.subject} 자동확정 ${percent(row.auto, row.total).toFixed(1)}%, 검수후확정 ${percent(row.review, row.total).toFixed(1)}%, 채점센터 ${percent(row.center, row.total).toFixed(1)}%`}>
+              {(['auto', 'review', 'center'] as const).map((tone) => {
+                const share = percent(row[tone], row.total)
+                return <span key={tone} className={`segment-${tone}`} style={{ width: `${share}%`, background: toneColors[tone] }}>{share >= 8 ? `${share.toFixed(0)}%` : ''}</span>
+              })}
+            </div>
+            <span className="dashboard-subject-total">{number.format(row.total)}장 · <b>AI {percent(row.auto + row.review, row.total).toFixed(1)}%</b></span>
+          </div>
+        ))}
+      </div>
     </section>
   </div>
 }
