@@ -22,6 +22,9 @@ export type StageSettings = Record<number, ProgressSetting | undefined>
 /** 전체 설정: `과목|단계` → 단계 설정 */
 export type RuleSettings = Record<string, StageSettings>
 
+/** 다른 화면에서 기준설정으로 이동할 때 넘기는 정보(react-router location.state) */
+export type StandardsLinkState = { subject: Subject; stage: string; period?: { start: string; end: string }; sortByErrorRate?: boolean; from?: string }
+
 export const stageKey = (subject: Subject, stage: string) => `${subject}|${stage}`
 
 /** 실제로 적용되는 배정: 선택하지 않았으면 채점센터 */

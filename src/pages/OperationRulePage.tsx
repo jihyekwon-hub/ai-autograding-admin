@@ -1,7 +1,8 @@
 import { AlertTriangle, CalendarDays, Check, Download, RotateCcw, Save, Search, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAdminData } from '../contexts/adminStore'
-import { curriculumStages, MONTH_START, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
+import { curriculumStages, MONTH_START, normalizeStage, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
 import {
   compressProgress,
   defaultLp,
@@ -16,6 +17,7 @@ import {
   type RuleResult,
   type RuleSettings,
   type StageSettings,
+  type StandardsLinkState,
 } from '../data/operationRules'
 import { ColumnFilter, type SortDirection } from '../components/ColumnFilter'
 import { getProgressResult, type ProgressResult } from '../data/progressResults'
@@ -45,17 +47,21 @@ function stageSummary(stageSettings: StageSettings, progresses: number[]) {
 
 export function OperationRulePage() {
   const { ruleSettings, setRuleSettings, rulesSavedAt, setRulesSavedAt, addHistory } = useAdminData()
-  const [subject, setSubject] = useState<Subject>('수학')
-  const [stage, setStage] = useState('A')
+  // 대시보드 오류율 상세 등에서 이동하면 과목·단계·조회기간·정렬을 넘겨받는다.
+  const linkState = useLocation().state as StandardsLinkState | null
+  const link = linkState && (subjects as readonly string[]).includes(linkState.subject) ? linkState : null
+  const linkPeriod = link?.period ?? initialPeriod
+  const [subject, setSubject] = useState<Subject>(link?.subject ?? '수학')
+  const [stage, setStage] = useState(link ? normalizeStage(link.subject, link.stage) : 'A')
   const [draft, setDraft] = useState<RuleSettings>(ruleSettings)
-  const [message, setMessage] = useState<{ tone: 'error' | 'success' | 'info'; text: string } | null>(null)
+  const [message, setMessage] = useState<{ tone: 'error' | 'success' | 'info'; text: string } | null>(link?.from ? { tone: 'info', text: `${link.from}에서 이동: ${link.subject} ${normalizeStage(link.subject, link.stage)} · ${linkPeriod.start} ~ ${linkPeriod.end}${link.sortByErrorRate ? ' · 오류율 높은 순' : ''}` } : null)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [periodDraft, setPeriodDraft] = useState<Period>(initialPeriod)
-  const [period, setPeriod] = useState<Period>(initialPeriod)
+  const [periodDraft, setPeriodDraft] = useState<Period>(linkPeriod)
+  const [period, setPeriod] = useState<Period>(linkPeriod)
   const [periodError, setPeriodError] = useState('')
   // 엑셀 자동필터처럼 표의 모든 열에서 필터·정렬(배정기준설정·처리결과조회 공통 행)
   const [columnFilters, setColumnFilters] = useState<Partial<Record<BoardColumnKey, string[] | null>>>({})
-  const [boardSort, setBoardSort] = useState<{ key: BoardColumnKey; direction: SortDirection } | null>(null)
+  const [boardSort, setBoardSort] = useState<{ key: BoardColumnKey; direction: SortDirection } | null>(link?.sortByErrorRate ? { key: 'errorRate', direction: 'desc' } : null)
 
   const key = stageKey(subject, stage)
   const savedStage = ruleSettings[key] ?? emptyStage
