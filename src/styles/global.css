@@ -328,14 +328,7 @@ a { color: inherit; text-decoration: none; }
 .review-status-heading p { margin: 0 0 7px; color: var(--blue-500); font-size: 11px; font-weight: 700; }
 .review-status-heading h1 { margin: 0 0 7px; color: #172338; font-size: 27px; letter-spacing: -.8px; }
 .review-status-heading span { color: var(--muted); font-size: 13px; }
-.review-filter-card { min-height: 72px; display: flex; align-items: end; gap: 10px; margin-bottom: 14px; padding: 13px 14px; border: 1px solid #dce3ec; border-radius: 9px; background: #fff; box-shadow: 0 2px 8px rgba(20,39,68,.035); }
-.review-filter-card label { min-width: 112px; display: grid; gap: 5px; color: #59677c; font-size: 9px; font-weight: 700; }
-.review-filter-card input, .review-filter-card select { height: 36px; padding: 0 9px; border: 1px solid #cfd8e4; border-radius: 6px; outline: none; background: #fff; color: #293a50; font: inherit; font-size: 10px; }
-.review-filter-card input:focus, .review-filter-card select:focus { border-color: #5488c5; box-shadow: 0 0 0 2px rgba(84,136,197,.12); }
 .filter-wave { padding-bottom: 9px; color: #8793a4; font-size: 12px; }
-.review-filter-actions { display: flex; gap: 6px; margin-left: auto; }
-.review-filter-actions button { height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 12px; border: 1px solid #cbd4df; border-radius: 6px; background: #fff; color: #4b5a70; font-size: 10px; font-weight: 700; }
-.review-filter-actions .search { border-color: #183354; background: #183354; color: #fff; }
 .review-status-panel { overflow: hidden; border: 1px solid #dce3ec; border-radius: 9px; background: #fff; box-shadow: 0 2px 9px rgba(20,39,68,.035); }
 .review-status-panel-heading { min-height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; border-bottom: 1px solid #dce3ec; background: linear-gradient(135deg, #142a48, #203c61); color: #fff; }
 .review-status-panel-heading > div, .review-status-panel-heading span { min-width: 0; display: flex; align-items: center; gap: 8px; }
@@ -375,22 +368,14 @@ a { color: inherit; text-decoration: none; }
 .error-글자-오인식, .error-판정-불일치 { background: #f7e9ec; color: #a34e5c; }
 .error-숫자-자리수-오류 { background: #e9f1fa; color: #3971ae; }
 .error-LP-낮음 { background: #fbf2d9; color: #9b7719; }
-.period-summary-panel { margin-bottom: 5px; }
-.period-summary-panel .review-status-table td:first-child { color: #254d7c; }
 
 @media (max-width: 1280px) {
-  .review-filter-card { flex-wrap: wrap; }
-  .review-filter-actions { margin-left: 0; }
   .review-status-main-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
   .review-status-heading h1 { font-size: 23px; }
-  .review-filter-card { align-items: stretch; }
-  .review-filter-card label { width: 100%; }
   .filter-wave { display: none; }
-  .review-filter-actions { width: 100%; }
-  .review-filter-actions button { flex: 1; }
   .review-status-panel-heading small { display: none; }
   .review-bars { min-width: 360px; }
 }
@@ -642,10 +627,6 @@ a { color: inherit; text-decoration: none; }
 .reviewer-modal-title h2 { margin: 0; font-size: 15px; }
 .reviewer-modal-title p { margin: 3px 0 0; color: #c8d4e2; font-size: 9px; }
 .reviewer-modal-title button { border: 0; background: transparent; color: #fff; }
-.multi-select { min-width: 108px; position: relative; display: grid; gap: 5px; color: #59677c; font-size: 9px; font-weight: 700; }
-.multi-select > button { height: 36px; padding: 0 9px; border: 1px solid #cfd8e4; border-radius: 6px; background: #fff; color: #293a50; font-size: 10px; text-align: left; }
-.multi-select-menu { min-width: 150px; max-height: 220px; overflow: auto; position: absolute; top: 57px; left: 0; z-index: 20; padding: 7px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; box-shadow: 0 8px 22px rgba(20,39,68,.16); }
-.multi-select-menu label { display: flex; align-items: center; gap: 6px; padding: 6px; font-size: 10px; }
 .correction-list-panel { margin-bottom: 5px; }
 .review-status-empty { height: 80px !important; color: #8592a5; }
 .sheet-view-button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid #b9cada; border-radius: 5px; background: #f7faff; color: #36597c; font-size: 9px; font-weight: 700; }
@@ -704,13 +685,7 @@ a { color: inherit; text-decoration: none; }
 /* 검수교사 관리 */
 
 /* 검수현황 */
-.review-status-page .review-filter-card label,
-.review-status-page .review-filter-card input,
-.review-status-page .review-filter-card select,
-.review-status-page .review-filter-actions button,
-.review-status-page .multi-select,
-.review-status-page .multi-select > button,
-.review-status-page .multi-select-menu label { font-size: var(--font-size-base); }
+
 .review-status-page .review-status-panel-heading strong { font-size: var(--font-size-lg); }
 .review-status-page .review-status-panel-heading small { font-size: var(--font-size-sm); }
 .review-status-page .line-chart-values b,
@@ -807,7 +782,6 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 760px) {
   .dashboard-review-summary { grid-template-columns: 1fr; }
   .dashboard-review-progress > div:first-child { align-items: flex-start; flex-direction: column; gap: 4px; }
-  .multi-select { width: 100%; }
   .sheet-meta { grid-template-columns: 1fr 1fr; }
   .review-sheet-modal .sheet-meta { grid-template-columns: 1fr; }
   .reviewed-sheet { margin: 0 10px; }
@@ -1003,3 +977,23 @@ a { color: inherit; text-decoration: none; }
   .flow-diagram { grid-template-columns: 1fr; }
   .flow-group-arrow { top: auto; right: 50%; bottom: -27px; transform: rotate(90deg); }
 }
+
+/* 수정내역: 엑셀형 열 필터 */
+.column-filter-head { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.column-filter-button { width: 20px; height: 20px; flex: 0 0 auto; display: grid; place-items: center; padding: 0; border: 1px solid #cfd8e4; border-radius: 4px; background: #fff; color: #5a687c; cursor: pointer; }
+.column-filter-button:hover { border-color: #8fa6c2; }
+.column-filter-button.active, .column-filter-button.sorted { border-color: #2d639f; background: #eaf2fc; color: #1f4f86; }
+.column-filter-menu { position: fixed; z-index: 60; width: 240px; display: grid; gap: 4px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; box-shadow: 0 10px 28px rgba(20,39,68,.18); color: #33425a; font-size: var(--font-size-sm); font-weight: var(--font-weight-regular, 400); text-align: left; }
+.column-filter-menu > button { height: 28px; display: flex; align-items: center; gap: 7px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; color: #33425a; font-size: var(--font-size-sm); cursor: pointer; }
+.column-filter-menu > button:hover, .column-filter-menu > button.on { background: #f1f6fc; color: #1f4f86; }
+.column-filter-search { display: flex; align-items: center; gap: 6px; height: 30px; margin-top: 2px; padding: 0 8px; border: 1px solid #d5dde8; border-radius: 5px; color: #8592a5; }
+.column-filter-search input { width: 100%; border: 0; outline: none; background: transparent; color: #2b3a4f; font: inherit; font-size: var(--font-size-sm); }
+.column-filter-list { max-height: 220px; overflow: auto; padding: 4px 0; border: 1px solid #e3e8ef; border-radius: 5px; }
+.column-filter-list label { display: flex; align-items: center; gap: 7px; padding: 4px 8px; white-space: nowrap; cursor: pointer; }
+.column-filter-list label:hover { background: #f5f8fc; }
+.column-filter-list p { margin: 6px 8px; color: #8592a5; }
+.column-filter-actions { display: flex; justify-content: flex-end; gap: 6px; padding-top: 2px; }
+.column-filter-actions button { height: 28px; padding: 0 14px; border: 1px solid #d5dde8; border-radius: 5px; background: #fff; color: #44536a; font-size: var(--font-size-sm); cursor: pointer; }
+.column-filter-actions button.confirm { border-color: #183354; background: #183354; color: #fff; }
+.column-filter-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.column-filter-reset { height: 30px; display: inline-flex; align-items: center; gap: 5px; padding: 0 11px; border: 1px solid rgba(255,255,255,.35); border-radius: 5px; background: transparent; color: #fff; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); cursor: pointer; }
