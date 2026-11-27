@@ -1,6 +1,9 @@
-import { Building2, CheckCircle2, Layers3, Sparkles, UserCheck, type LucideIcon } from 'lucide-react'
-import { useState } from 'react'
-import { subjects, TODAY, type Subject } from '../data/curriculum'
+import { AlertTriangle, Building2, CheckCircle2, Layers3, PencilLine, ShieldCheck, Sparkles, UserCheck, type LucideIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useAdminData } from '../contexts/adminStore'
+import { curriculumStages, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
+import { effectiveResult, stageKey } from '../data/operationRules'
+import { ERROR_RATE_THRESHOLD, getProgressResult } from '../data/progressResults'
 import { performanceData } from '../data/performance'
 
 const number = new Intl.NumberFormat('ko-KR')
@@ -20,6 +23,7 @@ const subjectOrder: Subject[] = ['국어', '수학', '영어', '과학'].filter(
 export function DashboardPage() {
   // 대시보드는 선택한 기준월 단위로 집계한다(기준일이 속한 달은 기준일까지 누적).
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const { ruleSettings } = useAdminData()
   const month = performanceData
     .filter((row) => row.date.startsWith(selectedMonth) && row.date <= TODAY)
     .reduce((sum, row) => ({
@@ -32,9 +36,35 @@ export function DashboardPage() {
   const subjectRows = subjectOrder.map((subject) => {
     const sums = performanceData
       .filter((row) => row.subject === subject && row.date.startsWith(selectedMonth) && row.date <= TODAY)
-      .reduce((sum, row) => ({ auto: sum.auto + row.autoConfirmed, review: sum.review + row.reviewConfirmed, center: sum.center + row.gradingCenter }), { auto: 0, review: 0, center: 0 })
+      .reduce((sum, row) => ({ auto: sum.auto + row.autoConfirmed, review: sum.review + row.reviewConfirmed, center: sum.center + row.gradingCenter, corrected: sum.corrected + row.corrected }), { auto: 0, review: 0, center: 0, corrected: 0 })
     return { subject, ...sums, total: sums.auto + sums.review + sums.center }
   })
+
+  // 오류율 = 검수후확정 중 검수교사가 수정한 장 수 / 검수후확정 × 100
+  const monthCorrected = subjectRows.reduce((sum, row) => sum + row.corrected, 0)
+  const monthReview = subjectRows.reduce((sum, row) => sum + row.review, 0)
+  const monthErrorRate = percent(monthCorrected, monthReview)
+  const subjectErrors = subjectRows.map((row) => ({ subject: row.subject, rate: percent(row.corrected, row.review) }))
+  const worstSubject = subjectErrors.reduce((worst, item) => item.rate > worst.rate ? item : worst, subjectErrors[0])
+  // 기준 초과 진도번호: 저장된 기준이 검수배정인 진도번호 중 기준월 오류율이 관리 기준을 넘는 수
+  const overThreshold = useMemo(() => {
+    const start = `${selectedMonth}-01`
+    const end = `${selectedMonth}-31`
+    let count = 0
+    let reviewProgresses = 0
+    subjects.forEach((subject) => curriculumStages[subject].forEach((stage) => {
+      const stageSettings = ruleSettings[stageKey(subject, stage)] ?? {}
+      progressNumbers.forEach((progress) => {
+        if (effectiveResult(stageSettings[progress]) !== '검수후확정') return
+        reviewProgresses += 1
+        const result = getProgressResult(subject, stage, progress, stageSettings[progress], start, end)
+        if (result.review && result.corrected / result.review * 100 > ERROR_RATE_THRESHOLD) count += 1
+      })
+    }))
+    return { count, reviewProgresses }
+  }, [ruleSettings, selectedMonth])
+  const errorOk = monthErrorRate <= ERROR_RATE_THRESHOLD
+  const barMax = Math.max(ERROR_RATE_THRESHOLD * 1.6, ...subjectErrors.map((item) => item.rate))
 
   // 전체 = AI 자동채점 + 채점센터, AI 자동채점 = 자동확정 + 검수후확정
   const ai = month.auto + month.review
@@ -71,6 +101,43 @@ export function DashboardPage() {
         centerLabel="AI 자동채점"
         slices={[{ label: '자동확정', value: month.auto, tone: 'auto' }, { label: '검수후확정', value: month.review, tone: 'review' }]}
       />
+    </section>
+    <section className="dashboard-error-card">
+      <header>
+        <div><strong>오류율 모니터링</strong><span>검수후확정 중 검수교사가 AI 판정을 수정한 비율 · 기준월</span></div>
+        <em>관리 기준 {ERROR_RATE_THRESHOLD.toFixed(1)}% 이하</em>
+      </header>
+      <div className="dashboard-error-tiles">
+        <div className={`dashboard-error-tile ${errorOk ? 'is-ok' : 'is-alert'}`}>
+          <div className="kpi-icon">{errorOk ? <ShieldCheck size={20}/> : <AlertTriangle size={20}/>}</div>
+          <div><span>이번 달 오류율</span><strong>{monthErrorRate.toFixed(1)}%</strong><small>{errorOk ? '정상 · 기준 이하' : '주의 · 기준 초과'}</small></div>
+        </div>
+        <div className="dashboard-error-tile">
+          <div className="kpi-icon"><PencilLine size={20}/></div>
+          <div><span>수정 장수</span><strong>{number.format(monthCorrected)}장</strong><small>검수후확정 {number.format(monthReview)}장 중</small></div>
+        </div>
+        <div className={`dashboard-error-tile ${overThreshold.count > 0 ? 'is-warn' : 'is-ok'}`}>
+          <div className="kpi-icon"><AlertTriangle size={20}/></div>
+          <div><span>기준 초과 진도번호</span><strong>{number.format(overThreshold.count)}개</strong><small>검수배정 {number.format(overThreshold.reviewProgresses)}개 중 · {ERROR_RATE_THRESHOLD.toFixed(1)}% 초과</small></div>
+        </div>
+        <div className="dashboard-error-tile">
+          <div className="kpi-icon"><Layers3 size={20}/></div>
+          <div><span>가장 높은 과목</span><strong>{worstSubject?.subject ?? '-'}</strong><small>오류율 {worstSubject ? worstSubject.rate.toFixed(1) : '0.0'}%</small></div>
+        </div>
+      </div>
+      <div className="dashboard-error-subjects">
+        <div className="dashboard-error-subjects-title">과목별 오류율 <small>점선 = 관리 기준 {ERROR_RATE_THRESHOLD.toFixed(1)}%</small></div>
+        {subjectErrors.map((item) => (
+          <div className="dashboard-error-row" key={item.subject}>
+            <strong>{item.subject}</strong>
+            <div className="dashboard-error-track" role="img" aria-label={`${item.subject} 오류율 ${item.rate.toFixed(1)}%`}>
+              <i className={item.rate > ERROR_RATE_THRESHOLD ? 'over' : ''} style={{ width: `${item.rate / barMax * 100}%` }}/>
+              <b style={{ left: `${ERROR_RATE_THRESHOLD / barMax * 100}%` }}/>
+            </div>
+            <span className={item.rate > ERROR_RATE_THRESHOLD ? 'over' : ''}>{item.rate.toFixed(1)}%</span>
+          </div>
+        ))}
+      </div>
     </section>
     <section className="dashboard-subject-card">
       <header>
