@@ -304,22 +304,22 @@ a { color: inherit; text-decoration: none; }
 .assign-lp.invalid { border-color: #d06a6a; background: #fff6f6; }
 .assign-cell.is-selected .assign-lp { border-color: #9db8d8; }
 /* 과목별 배정 비중 파이: 네 과목을 한 번에 */
-.operation-subject-pies { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: 10px; padding-left: 22px; border-left: 1px solid #e3e8ef; }
+.operation-subject-pies { flex: 1 1 560px; min-width: 0; display: flex; align-items: center; gap: 10px 18px; margin-left: 10px; padding-left: 22px; border-left: 1px solid #e3e8ef; }
 .operation-subject-pies-head { display: grid; gap: 4px; margin-right: 4px; }
 .operation-subject-pies-head strong { color: #203149; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); }
 .operation-subject-pies-head small { color: #8592a5; font-size: var(--font-size-xs); }
 .operation-subject-pies-head ul { display: grid; gap: 3px; margin: 2px 0 0; padding: 0; list-style: none; }
 .operation-subject-pies-head li { display: flex; align-items: center; gap: 5px; color: #536176; font-size: var(--font-size-xs); }
 .operation-subject-pies-head li i, .operation-subject-pie-values i { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 2px; }
-.operation-subject-pie { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border: 1px solid transparent; border-radius: 10px; background: transparent; }
+.operation-subject-pie { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px 6px 6px; border: 1px solid transparent; border-radius: 10px; background: transparent; }
 .operation-subject-pie.active { border-color: #c9d8ea; background: #f1f6fc; }
-.operation-subject-pie-chart { position: relative; width: 64px; height: 64px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; }
-.operation-subject-pie-chart::after { content: ''; position: absolute; inset: 13px; border-radius: 50%; background: #fff; }
+.operation-subject-pie-chart { position: relative; width: 72px; height: 72px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; }
+.operation-subject-pie-chart::after { content: ''; position: absolute; inset: 15px; border-radius: 50%; background: #fff; }
 .operation-subject-pie-chart b { position: relative; z-index: 1; color: #203149; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); }
 .operation-subject-pie-values { display: grid; gap: 2px; }
 .operation-subject-pie-values > span { display: flex; align-items: center; gap: 4px; color: #3c4b60; font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); white-space: nowrap; }
 @media (max-width: 760px) {
-  .operation-subject-pies { grid-column: 1 / -1; margin-left: 0; padding: 12px 0 0; border-left: 0; border-top: 1px solid #e3e8ef; }
+  .operation-subject-pies { grid-column: 1 / -1; flex-wrap: wrap; margin-left: 0; padding: 12px 0 0; border-left: 0; border-top: 1px solid #e3e8ef; }
   .operation-subject-pies-head { width: 100%; }
   .operation-subject-pies-head ul { display: flex; gap: 10px; }
   .operation-subject-pie { flex: 1 1 calc(50% - 10px); }
