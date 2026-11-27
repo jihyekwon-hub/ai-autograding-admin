@@ -26,7 +26,7 @@ export const adminFlow: FlowGroup[] = [
 ]
 
 export const screenDataFlows: Record<string, string[]> = {
-  dashboard: ['Performance mock data', '기준월 선택 → 해당 월 집계(기준일이 속한 달은 기준일까지)', '전체 = AI 자동채점 + 채점센터 / AI 자동채점 = 자동확정 + 검수후확정', '박스 6개 · 파이그래프 2개', '오류율 모니터링: 진도번호 처리결과(progressResults) → 단계 · 과목 오류율', '과목 막대 클릭 → 오류율 상세 팝업 → [기준설정에서 보기] (과목 · 단계 · 기간 · 오류율 정렬 전달)'],
+  dashboard: ['Performance mock data(제출량) + 저장된 배정기준 → 자동확정·검수후확정·채점센터 구성', '기준월 선택 → 해당 월 집계(기준일이 속한 달은 기준일까지)', '전체 = AI 자동채점 + 채점센터 / AI 자동채점 = 자동확정 + 검수후확정', '박스 6개 · 파이그래프 2개', '오류율 모니터링: 진도번호 처리결과(progressResults) → 단계 · 과목 오류율', '과목 막대 클릭 → 오류율 상세 팝업 → [기준설정에서 보기] (과목 · 단계 · 기간 · 오류율 정렬 전달)', '과목별 처리 구성 막대 클릭 → 처리 구성 상세 팝업 → [기준설정에서 보기] (전체 제출 정렬 전달)'],
   standards: ['과목·단계 선택 → 진도번호 1~200 목록 + 네 과목 배정 비중', '진도번호별 배정 하나 선택 + LP 범위(초과 ~ 이하) 입력', 'LP 0~100 · 초과값 < 이하값 Validation', '열별 엑셀형 필터·정렬', '저장 확인 팝업', 'Rule Save API (예정)', 'OPERATING_RULE DB (예정)', 'Routing Engine', '엑셀 다운로드(.xlsx)', '처리결과조회: 조회기간별 진도번호 처리결과·오류율 집계(실시간)'],
   'review-status': ['REVIEW_RESULT + REVIEWER', '수정 내역 Table(전체)', '열별 엑셀형 필터·정렬', '검수 완료 화면 Modal'],
 }
