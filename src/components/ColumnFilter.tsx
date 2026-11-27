@@ -1,9 +1,11 @@
 import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Filter, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 // 엑셀 자동필터처럼 표 머리글에서 값 목록을 체크해 행을 거르는 드롭다운.
 // - 값 검색, (모두 선택), 값별 체크, 오름차순/내림차순 정렬, [확인]/[취소]
 // - 목록 값은 다른 열의 필터를 적용한 결과에서 뽑아 엑셀처럼 연쇄 필터링된다.
+// - 메뉴는 body에 portal로 띄워 고정 머리글·스크롤 영역에 가려지지 않게 한다.
 
 export type SortDirection = 'asc' | 'desc'
 
@@ -77,7 +79,7 @@ export function ColumnFilter({ label, values, selected, sort, onApply, onSort }:
       <button ref={buttonRef} type="button" className={`column-filter-button ${active ? 'active' : ''} ${sort ? 'sorted' : ''}`} aria-label={`${label} 필터`} aria-expanded={open} onClick={() => (open ? setOpen(false) : openMenu())}>
         {active ? <Filter size={12} /> : <ChevronDown size={13} />}
       </button>
-      {open && (
+      {open && createPortal(
         <div ref={menuRef} className="column-filter-menu" style={{ top: position.top, left: position.left }} role="dialog" aria-label={`${label} 필터`}>
           <button type="button" className={sort === 'asc' ? 'on' : ''} onClick={() => { onSort('asc'); setOpen(false) }}><ArrowDownAZ size={14} /> 오름차순 정렬</button>
           <button type="button" className={sort === 'desc' ? 'on' : ''} onClick={() => { onSort('desc'); setOpen(false) }}><ArrowUpAZ size={14} /> 내림차순 정렬</button>
@@ -93,7 +95,8 @@ export function ColumnFilter({ label, values, selected, sort, onApply, onSort }:
             <button type="button" className="confirm" disabled={draft.size === 0} onClick={apply}>확인</button>
             <button type="button" onClick={() => setOpen(false)}>취소</button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   )
