@@ -302,7 +302,6 @@ function CompositionDetailModal({ detail, month, onClose }: { detail: SubjectSta
   }, [onClose])
 
   const allProgresses = detail.stages.flatMap((item) => item.progresses)
-  const subjectVolume = allProgresses.reduce((sum, item) => sum + item.total, 0)
   const topRows = allProgresses
     .filter((item) => (routeFilter === '전체' || item.route === routeFilter) && (stageFilter === '전체' || item.stage === stageFilter))
     .sort((a, b) => b.total - a.total)
@@ -356,7 +355,7 @@ function CompositionDetailModal({ detail, month, onClose }: { detail: SubjectSta
         </div>
         <div className="dashboard-error-modal-table">
           <table>
-            <thead><tr><th>단계</th><th>진도번호</th><th>배정</th><th>전체 제출</th><th>과목 내 비중</th></tr></thead>
+            <thead><tr><th>단계</th><th>진도번호</th><th>배정</th><th>전체 제출</th></tr></thead>
             <tbody>
               {topRows.map((row) => (
                 <tr key={`${row.stage}-${row.progress}`}>
@@ -364,10 +363,9 @@ function CompositionDetailModal({ detail, month, onClose }: { detail: SubjectSta
                   <td>{row.progress}</td>
                   <td><span className={`dashboard-route-pill route-${routeTone[row.route]}`}>{resultLabels[row.route]}</span></td>
                   <td>{number.format(row.total)}</td>
-                  <td>{percent(row.total, subjectVolume).toFixed(1)}%</td>
                 </tr>
               ))}
-              {topRows.length === 0 && <tr><td colSpan={5} className="empty">조건에 맞는 진도번호가 없습니다.</td></tr>}
+              {topRows.length === 0 && <tr><td colSpan={4} className="empty">조건에 맞는 진도번호가 없습니다.</td></tr>}
             </tbody>
           </table>
         </div>
