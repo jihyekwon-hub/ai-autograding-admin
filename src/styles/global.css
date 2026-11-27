@@ -1067,7 +1067,7 @@ a { color: inherit; text-decoration: none; }
 /* 대시보드: 과목 오류율 상세 팝업 */
 .dashboard-error-value { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .dashboard-error-value svg { color: #9aa6b6; }
-.dashboard-error-modal { width: min(720px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; display: grid; gap: 16px; padding: 18px 20px; border-radius: 12px; background: #fff; box-shadow: 0 18px 48px rgba(9, 20, 35, .25); }
+.dashboard-error-modal { width: min(1120px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; display: grid; gap: 16px; padding: 18px 20px; border-radius: 12px; background: #fff; box-shadow: 0 18px 48px rgba(9, 20, 35, .25); }
 .dashboard-error-modal > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .dashboard-error-modal h2 { display: flex; align-items: center; gap: 8px; margin: 0; color: #203149; font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); }
 .dashboard-error-modal h2 em { padding: 2px 9px; border-radius: 999px; font-size: var(--font-size-xs); font-style: normal; font-weight: var(--font-weight-semibold); }
@@ -1136,4 +1136,13 @@ a { color: inherit; text-decoration: none; }
 .review-status-section-head { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
 @media (max-width: 760px) {
   .review-status-section-head { justify-content: flex-start; }
+}
+
+/* 대시보드 상세 팝업: 넓은 화면에서는 단계별(왼쪽)과 진도번호 표(오른쪽)를 나란히 두어 창 높이 안에 들어가게 한다. */
+.dashboard-error-modal > header, .dashboard-error-modal-tiles, .dashboard-error-modal > footer { grid-column: 1 / -1; }
+.dashboard-error-modal-stages, .dashboard-error-modal-progress { min-width: 0; align-content: start; }
+@media (min-width: 1000px) {
+  .dashboard-error-modal { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); column-gap: 24px; padding: 22px 26px; }
+  .dashboard-error-modal-progress { padding-left: 24px; border-left: 1px solid #eef1f5; }
+  .dashboard-error-modal-tiles strong { font-size: var(--font-size-xl); }
 }
