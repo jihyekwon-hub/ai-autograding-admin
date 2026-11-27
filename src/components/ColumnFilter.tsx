@@ -1,5 +1,5 @@
 import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Filter, Search } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 // 엑셀 자동필터처럼 표 머리글에서 값 목록을 체크해 행을 거르는 드롭다운.
@@ -36,6 +36,17 @@ export function ColumnFilter({ label, values, selected, sort, onApply, onSort }:
     setQuery('')
     setOpen(true)
   }
+
+  // 메뉴가 화면 아래로 넘치면 버튼 위로 올리거나 화면 안에 맞춘다.
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current || !buttonRef.current) return
+    const height = menuRef.current.offsetHeight
+    const rect = buttonRef.current.getBoundingClientRect()
+    if (rect.bottom + 4 + height <= window.innerHeight - 8) return
+    const above = rect.top - 4 - height
+    const top = above >= 8 ? above : Math.max(8, window.innerHeight - 8 - height)
+    setPosition((current) => current.top === top ? current : { ...current, top })
+  }, [open])
 
   // 바깥 클릭·스크롤·창 크기 변경 시 닫는다(표 스크롤 영역에 잘리지 않도록 화면 고정 위치로 띄움).
   useEffect(() => {
