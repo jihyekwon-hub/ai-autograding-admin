@@ -262,7 +262,7 @@ a { color: inherit; text-decoration: none; }
 
 /* 운영기준 목록: 하나의 표 안에서 좌(배정기준설정) · 우(처리결과조회)를 간격 열로 나눠 행을 맞춘다 */
 .rule-board { max-height: 640px; overflow: auto; margin: 12px 14px 0; }
-.rule-board-table { width: 100%; min-width: 1280px; border-collapse: separate; border-spacing: 0; }
+.rule-board-table { width: 100%; min-width: 1200px; border-collapse: separate; border-spacing: 0; }
 .rule-board-table th { position: sticky; z-index: 2; padding: 0 10px; background: #f3f6f9; color: #5a687c; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); text-align: center; white-space: nowrap; }
 .rule-board-table .board-title-row th { top: 0; height: 66px; border-top: 1px solid #dfe5ed; text-align: left; vertical-align: middle; }
 .rule-board-table .board-group-row th { top: 66px; height: 32px; border-top: 1px solid #dfe5ed; }
@@ -293,12 +293,13 @@ a { color: inherit; text-decoration: none; }
 .rule-board-table tr.is-changed td.assign-part { background: #fffaf0; }
 .rule-board-table tr.has-error td.assign-part { background: #fdf2f2; }
 .rule-board-table tbody tr:hover td:not(.board-gap) { background: #f7faff; }
-.assign-cell { min-width: 176px; text-align: center; }
+.assign-cell { min-width: 150px; text-align: center; }
 .assign-range { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
 .assign-range em { color: #8592a5; font-size: var(--font-size-xs); font-style: normal; }
 .assign-cell > input { vertical-align: middle; }
 .assign-cell input[type="radio"] { width: 16px; height: 16px; margin: 0 8px 0 0; accent-color: #2d639f; cursor: pointer; }
-.assign-lp { width: 50px; height: 30px; padding: 0 6px; border: 1px solid #d5dde8; border-radius: 5px; background: #fff; color: #2b3a4f; font: inherit; font-size: var(--font-size-sm); text-align: right; }
+.assign-lp { width: 44px; height: 30px; padding: 0 5px; -moz-appearance: textfield; appearance: textfield; border: 1px solid #d5dde8; border-radius: 5px; background: #fff; color: #2b3a4f; font: inherit; font-size: var(--font-size-sm); text-align: right; }
+.assign-lp::-webkit-inner-spin-button, .assign-lp::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .assign-lp:disabled { border-color: #e7ebf0; background: #f5f7fa; }
 .assign-lp.invalid { border-color: #d06a6a; background: #fff6f6; }
 .assign-cell.is-selected .assign-lp { border-color: #9db8d8; }
