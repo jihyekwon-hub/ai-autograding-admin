@@ -54,14 +54,14 @@ export function OperationRulePage() {
   const [subject, setSubject] = useState<Subject>(link?.subject ?? '수학')
   const [stage, setStage] = useState(link ? normalizeStage(link.subject, link.stage) : 'A')
   const [draft, setDraft] = useState<RuleSettings>(ruleSettings)
-  const [message, setMessage] = useState<{ tone: 'error' | 'success' | 'info'; text: string } | null>(link?.from ? { tone: 'info', text: `${link.from}에서 이동: ${link.subject} ${normalizeStage(link.subject, link.stage)} · ${linkPeriod.start} ~ ${linkPeriod.end}${link.sortByErrorRate ? ' · 오류율 높은 순' : ''}` } : null)
+  const [message, setMessage] = useState<{ tone: 'error' | 'success' | 'info'; text: string } | null>(link?.from ? { tone: 'info', text: `${link.from}에서 이동: ${link.subject} ${normalizeStage(link.subject, link.stage)} · ${linkPeriod.start} ~ ${linkPeriod.end}${link.sortKey === 'errorRate' ? ' · 오류율 높은 순' : link.sortKey === 'total' ? ' · 전체 제출 많은 순' : ''}` } : null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [periodDraft, setPeriodDraft] = useState<Period>(linkPeriod)
   const [period, setPeriod] = useState<Period>(linkPeriod)
   const [periodError, setPeriodError] = useState('')
   // 엑셀 자동필터처럼 표의 모든 열에서 필터·정렬(배정기준설정·처리결과조회 공통 행)
   const [columnFilters, setColumnFilters] = useState<Partial<Record<BoardColumnKey, string[] | null>>>({})
-  const [boardSort, setBoardSort] = useState<{ key: BoardColumnKey; direction: SortDirection } | null>(link?.sortByErrorRate ? { key: 'errorRate', direction: 'desc' } : null)
+  const [boardSort, setBoardSort] = useState<{ key: BoardColumnKey; direction: SortDirection } | null>(link?.sortKey ? { key: link.sortKey, direction: 'desc' } : null)
 
   const key = stageKey(subject, stage)
   const savedStage = ruleSettings[key] ?? emptyStage

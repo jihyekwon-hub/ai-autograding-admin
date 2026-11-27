@@ -23,7 +23,7 @@ export type StageSettings = Record<number, ProgressSetting | undefined>
 export type RuleSettings = Record<string, StageSettings>
 
 /** 다른 화면에서 기준설정으로 이동할 때 넘기는 정보(react-router location.state) */
-export type StandardsLinkState = { subject: Subject; stage: string; period?: { start: string; end: string }; sortByErrorRate?: boolean; from?: string }
+export type StandardsLinkState = { subject: Subject; stage: string; period?: { start: string; end: string }; sortKey?: 'errorRate' | 'total'; from?: string }
 
 export const stageKey = (subject: Subject, stage: string) => `${subject}|${stage}`
 

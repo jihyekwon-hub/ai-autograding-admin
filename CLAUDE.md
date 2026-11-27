@@ -17,7 +17,7 @@ pnpm run lint      # eslint .
 
 사용자 PC는 회사 보안 규정상 Node.js를 설치할 수 없다. Claude Code는 로컬에서 Node/pnpm을 설치·실행하지 않고, 브랜치를 push한 뒤 Vercel Preview 빌드(`tsc -b && vite build`)와 Preview URL 화면으로 검증한다(lint는 로컬에서 실행되지 않음).
 
-기준설정 화면(구 운영기준 설정, `/standards`. 표 왼쪽 영역 제목은 '배정기준설정')은 배정을 자동배정/검수배정/채점배정으로 표기하지만(`resultLabels`), 데이터 값(`RuleResult`)과 다른 화면은 자동확정/검수후확정/채점센터를 유지한다. 운영기준은 진도번호마다 배정 하나 + LP 범위(`{ result, lpMin, lpMax }` = lpMin 초과 ~ lpMax 이하, 정답/오답 구분 없음)이며, 진도번호의 제출 답안은 전부 그 배정으로 집계된다(배정이 없으면 채점센터). LP 범위 밖 답안의 처리 방식은 미결. 샘플은 모든 과목·단계·진도번호에 배정 하나가 들어 있다. 진도번호별 처리결과·오류율 mock은 `data/progressResults.ts`(국어가 관리 기준 3%를 넘도록 과목·단계별 차이를 둠). 대시보드 오류율(과목 막대·상세 팝업)은 이 진도번호 오류율을 쓰고, 장 수만 `performance.ts`의 단계별 검수후확정에 맞춰 나눈다. 상세 팝업의 [기준설정에서 보기]는 `StandardsLinkState`(location.state)로 과목·단계·기간·오류율 정렬을 넘긴다. 다운로드는 외부 라이브러리 없이 `utils/xlsx.ts`로 .xlsx를 만든다.
+기준설정 화면(구 운영기준 설정, `/standards`. 표 왼쪽 영역 제목은 '배정기준설정')은 배정을 자동배정/검수배정/채점배정으로 표기하지만(`resultLabels`), 데이터 값(`RuleResult`)과 다른 화면은 자동확정/검수후확정/채점센터를 유지한다. 운영기준은 진도번호마다 배정 하나 + LP 범위(`{ result, lpMin, lpMax }` = lpMin 초과 ~ lpMax 이하, 정답/오답 구분 없음)이며, 진도번호의 제출 답안은 전부 그 배정으로 집계된다(배정이 없으면 채점센터). LP 범위 밖 답안의 처리 방식은 미결. 샘플은 모든 과목·단계·진도번호에 배정 하나가 들어 있다. 진도번호별 처리결과·오류율 mock은 `data/progressResults.ts`(국어가 관리 기준 3%를 넘도록 과목·단계별 차이를 둠). 대시보드는 `performance.ts`의 단계별 제출량(total)을 저장된 배정별 진도번호 처리량 비중으로 나눠 자동확정/검수후확정/채점센터를 만들고(기준설정 저장 시 바로 반영), 오류율은 검수배정 진도번호의 오류율로 계산한다(`buildSubjectStats`). 과목 막대(오류율·처리 구성)를 누르면 상세 팝업이 뜨고, [기준설정에서 보기]는 `StandardsLinkState`(location.state)로 과목·단계·기간·정렬(`sortKey`)을 넘긴다. 다운로드는 외부 라이브러리 없이 `utils/xlsx.ts`로 .xlsx를 만든다.
 
 ## 기술 스택
 
@@ -56,7 +56,7 @@ src/
 1. **화면설계서와 DOM이 연결되어 있다.** `src/specs/*Spec.ts`의 각 항목은 `selector`(예: `.dashboard-split-panel:nth-child(1) .kpi-card:nth-child(1)`)로 실제 페이지 요소를 가리키고, ScreenSpecPage가 이를 `querySelector`로 찾아 마커를 그린다. 페이지의 className·요소 순서·구조를 바꾸면 해당 spec의 selector를 함께 갱신하고, 기능·규칙이 바뀌면 spec 내용(businessRules, validation 등)도 갱신한다.
 2. 새 화면을 추가하면 `App.tsx` 라우트, `AdminLayout`의 `navigation`, `specs/common.ts`의 `screenMetadata`, `specs/index.ts`, `ScreenSpecPage`의 `previewComponents`, `specs/types.ts`의 `ScreenKey`를 모두 맞춘다.
 3. 과목·단계·진도번호 목록은 `data/curriculum.ts`만 기준으로 사용한다(하드코딩 금지).
-4. 기준일은 `TODAY`/`MONTH_START` 상수를 사용한다. 기존 코드에 남아 있는 하드코딩 날짜(`'2026-11-16 14:30'` 등)는 손댈 때 상수로 정리한다. 대시보드는 기준월 선택(기준일이 속한 해 1월~기준일이 속한 달)으로 월 단위 집계하며, 원천은 `data/performance.ts`다. 실적관리 화면은 대시보드로 합치기 위해 삭제했다(`/performance`는 대시보드로 리다이렉트).
+4. 기준일은 `TODAY`/`MONTH_START` 상수를 사용한다. 기존 코드에 남아 있는 하드코딩 날짜(`'2026-11-16 14:30'` 등)는 손댈 때 상수로 정리한다. 대시보드는 기준월 선택(기준일이 속한 해 1월~기준일이 속한 달)으로 월 단위 집계하며, 제출량 원천은 `data/performance.ts`다. 실적관리 화면은 대시보드로 합치기 위해 삭제했다(`/performance`는 대시보드로 리다이렉트).
 5. CSS는 단일 전역 파일이므로 페이지 접두어 클래스(`dashboard-*`, `operation-*`, `review-status-*`, `screen-spec-*`)를 사용하고, 공용 클래스 수정 시 다른 페이지 영향을 확인한다. 글자 크기·굵기는 토큰 변수를 사용한다.
 6. 반응형(모바일 사이드바 포함)을 깨뜨리지 않는다.
 
