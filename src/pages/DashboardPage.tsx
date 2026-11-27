@@ -43,8 +43,10 @@ export function DashboardPage() {
   // 오류율 = 검수후확정 중 검수교사가 수정한 장 수 / 검수후확정 × 100
   const monthCorrected = subjectRows.reduce((sum, row) => sum + row.corrected, 0)
   const monthReview = subjectRows.reduce((sum, row) => sum + row.review, 0)
-  const monthErrorRate = percent(monthCorrected, monthReview)
-  const subjectErrors = subjectRows.map((row) => ({ subject: row.subject, rate: percent(row.corrected, row.review) }))
+  const monthErrorRate = Math.round(percent(monthCorrected, monthReview) * 10) / 10
+  // 화면에 보이는 값(소수 첫째 자리)과 판정이 어긋나지 않도록 반올림한 값으로 비교한다.
+  const roundRate = (value: number) => Math.round(value * 10) / 10
+  const subjectErrors = subjectRows.map((row) => ({ subject: row.subject, rate: roundRate(percent(row.corrected, row.review)) }))
   const worstSubject = subjectErrors.reduce((worst, item) => item.rate > worst.rate ? item : worst, subjectErrors[0])
   // 기준 초과 진도번호: 저장된 기준이 검수배정인 진도번호 중 기준월 오류율이 관리 기준을 넘는 수
   const overThreshold = useMemo(() => {
