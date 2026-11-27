@@ -2,16 +2,12 @@ import { AlertTriangle, ArrowRight, Building2, CheckCircle2, ChevronRight, Layer
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminData } from '../contexts/adminStore'
-import { curriculumStages, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
+import { CURRENT_MONTH, curriculumStages, monthLabel, monthOptions, progressNumbers, subjects, TODAY, type Subject } from '../data/curriculum'
 import { effectiveResult, resultLabels, stageKey, type RuleResult, type RuleSettings, type StandardsLinkState } from '../data/operationRules'
 import { ERROR_RATE_THRESHOLD, getProgressResult } from '../data/progressResults'
 import { performanceData } from '../data/performance'
 
 const number = new Intl.NumberFormat('ko-KR')
-// 기준월 선택지: 기준일(TODAY)이 속한 해의 1월 ~ 기준일이 속한 달
-const currentMonth = TODAY.slice(0, 7)
-const monthOptions = Array.from({ length: Number(TODAY.slice(5, 7)) }, (_, index) => `${TODAY.slice(0, 4)}-${String(index + 1).padStart(2, '0')}`)
-const monthLabel = (month: string) => `${Number(month.slice(0, 4))}년 ${Number(month.slice(5, 7))}월`
 const percent = (value: number, base: number) => base ? value / base * 100 : 0
 // 화면에 보이는 값(소수 첫째 자리)과 판정이 어긋나지 않도록 반올림한 값으로 비교한다.
 const roundRate = (value: number) => Math.round(value * 10) / 10
@@ -35,7 +31,7 @@ const subjectOrder: Subject[] = ['국어', '수학', '영어', '과학'].filter(
 
 export function DashboardPage() {
   // 대시보드는 선택한 기준월 단위로 집계한다(기준일이 속한 달은 기준일까지 누적).
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH)
   const { ruleSettings } = useAdminData()
   // 처리 구성·오류율: 저장된 배정 기준으로 과목·단계·진도번호를 한 번에 집계해 모든 영역이 같은 값을 쓴다.
   const subjectStats = useMemo(() => buildSubjectStats(ruleSettings, selectedMonth), [ruleSettings, selectedMonth])

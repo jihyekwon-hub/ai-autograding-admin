@@ -1,4 +1,5 @@
 import { reviewDetails } from './reviewPerformance'
+import { MONTH_START, TODAY } from './curriculum'
 import { initialReviewers, type ReviewerSubject } from './reviewers'
 
 export type ErrorType = '글자 오인식' | '숫자 자리수 오류' | 'LP 낮음' | '특정 장 반복 오류' | '기타'
@@ -63,7 +64,45 @@ const additionalErrors: GradingError[] = [
   { id: 'ERR110', timestamp: '2026-11-08 17:14', reviewerId: 'TCH004', subject: '과학', stage: 'A', progress: 92, question: 9, page: 69, type: '특정 장 반복 오류', before: '정답', after: '오답', detail: typeDetails['특정 장 반복 오류'], status: '수정완료' },
 ]
 
-export const gradingErrors: GradingError[] = [...normalizedReviewErrors, ...additionalErrors]
+const errorTypes: ErrorType[] = ['글자 오인식', '숫자 자리수 오류', 'LP 낮음', '특정 장 반복 오류', '기타']
+
+// 기준월 조회용: 기준일이 속한 해 1월 ~ 지난달까지 달마다 9~14건(검수교사 담당 범위 안에서 seed로 생성)
+function createPastErrors(): GradingError[] {
+  const year = Number(TODAY.slice(0, 4))
+  const lastMonth = Number(MONTH_START.slice(5, 7)) - 1
+  const rows: GradingError[] = []
+  for (let month = 1; month <= lastMonth; month += 1) {
+    const count = 9 + (month * 7) % 6
+    const days = new Date(Date.UTC(year, month, 0)).getUTCDate()
+    for (let index = 0; index < count; index += 1) {
+      const seed = month * 97 + index * 31
+      const reviewer = initialReviewers[(month + index) % initialReviewers.length]
+      const type = errorTypes[seed % errorTypes.length]
+      const day = 1 + Math.floor((index + 0.5) * days / count)
+      const hour = 9 + seed % 9
+      const minute = (seed * 7) % 60
+      const toCorrect = seed % 3 !== 0
+      rows.push({
+        id: `ERR${year}${String(month).padStart(2, '0')}${String(index + 1).padStart(2, '0')}`,
+        timestamp: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+        reviewerId: reviewer.id,
+        subject: reviewer.subject,
+        stage: reviewer.stage,
+        progress: reviewer.progressFrom + seed % (reviewer.progressTo - reviewer.progressFrom + 1),
+        question: 1 + seed % 10,
+        page: 60 + seed % 40,
+        type,
+        before: toCorrect ? '오답' : '정답',
+        after: toCorrect ? '정답' : '오답',
+        detail: typeDetails[type],
+        status: '수정완료',
+      })
+    }
+  }
+  return rows
+}
+
+export const gradingErrors: GradingError[] = [...normalizedReviewErrors, ...additionalErrors, ...createPastErrors()]
   .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
 
 export function createErrorFromCorrection(error: Omit<GradingError, 'id' | 'timestamp'>): GradingError {

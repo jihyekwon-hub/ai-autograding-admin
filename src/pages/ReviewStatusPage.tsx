@@ -2,6 +2,7 @@ import { Eye, RotateCcw, SquarePen, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ColumnFilter, type SortDirection } from '../components/ColumnFilter'
 import { useReviewers } from '../contexts/reviewerStore'
+import { CURRENT_MONTH, monthLabel, monthOptions } from '../data/curriculum'
 import { gradingErrors, type GradingError } from '../data/errors'
 import { createReviewedSheet } from '../data/worksheets'
 import { ReviewedSheetView } from '../components/ReviewedWorksheetView'
@@ -14,6 +15,9 @@ type Column = { key: ColumnKey; label: string; filterValue: (item: GradingError)
 export function ReviewStatusPage() {
   const { reviewers } = useReviewers()
   const [sheet, setSheet] = useState<GradingError | null>(null)
+  // 기준월 단위로 조회한다(목록이 계속 쌓이지 않도록). 기본값은 기준일이 속한 달.
+  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH)
+  const monthErrors = useMemo(() => gradingErrors.filter((item) => item.timestamp.startsWith(selectedMonth)), [selectedMonth])
   // 열별 필터(null = 전체)와 정렬: 엑셀 자동필터처럼 표 머리글에서 설정한다.
   const [filters, setFilters] = useState<Partial<Record<ColumnKey, string[] | null>>>({})
   const [sort, setSort] = useState<{ key: ColumnKey; direction: SortDirection } | null>(null)
@@ -37,7 +41,7 @@ export function ReviewStatusPage() {
   })
 
   const corrections = useMemo(() => {
-    const rows = gradingErrors.filter((item) => matches(item))
+    const rows = monthErrors.filter((item) => matches(item))
     if (!sort) return rows
     const column = columnOf(sort.key)
     const direction = sort.direction === 'asc' ? 1 : -1
@@ -48,11 +52,11 @@ export function ReviewStatusPage() {
     })
     // columns·matches는 reviewers와 filters에서 계산되므로 두 값을 의존성으로 둔다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sort, reviewers])
+  }, [monthErrors, filters, sort, reviewers])
 
   // 엑셀처럼 다른 열의 필터를 적용한 결과에서 값 목록을 만든다.
   const valuesFor = (column: Column) => {
-    const rows = gradingErrors.filter((item) => matches(item, column.key))
+    const rows = monthErrors.filter((item) => matches(item, column.key))
     const unique = new Map<string, string | number>()
     rows.forEach((item) => { if (!unique.has(column.filterValue(item))) unique.set(column.filterValue(item), column.sortValue(item)) })
     return [...unique.entries()]
@@ -62,12 +66,20 @@ export function ReviewStatusPage() {
 
   const activeCount = Object.values(filters).filter(Boolean).length
   const reset = () => { setFilters({}); setSort(null) }
+  // 다른 달의 날짜 필터는 의미가 없으므로 기준월을 바꾸면 일시 필터만 해제한다.
+  const changeMonth = (month: string) => {
+    setSelectedMonth(month)
+    setFilters((current) => ({ ...current, date: null }))
+  }
   const reviewedSheet = sheet ? createReviewedSheet(sheet) : null
 
-  return <div className="page review-status-page"><div className="review-status-heading"><div><p>검수 운영 분석</p><h1>수정내역</h1><span>검수교사가 AI 판정을 수정한 내역과 검수 완료 화면을 조회합니다.</span></div></div>
+  return <div className="page review-status-page"><div className="review-status-heading"><div><p>검수 운영 분석</p><h1>수정내역</h1><span>검수교사가 AI 판정을 수정한 내역과 검수 완료 화면을 월 단위로 조회합니다.</span></div></div>
+    <div className="review-status-section-head">
+      <label className="review-status-month-select">기준월<select value={selectedMonth} onChange={(event) => changeMonth(event.target.value)}>{monthOptions.map((item) => <option key={item} value={item}>{monthLabel(item)}</option>)}</select></label>
+    </div>
     <section className="review-status-panel correction-list-panel">
       <div className="review-status-panel-heading">
-        <div><SquarePen size={17}/><span><strong>수정 내역 (총 {number.format(corrections.length)}건)</strong><small>머리글의 ▾를 눌러 엑셀처럼 열마다 필터·정렬할 수 있습니다.</small></span></div>
+        <div><SquarePen size={17}/><span><strong>수정 내역 ({monthLabel(selectedMonth)} · 총 {number.format(corrections.length)}건)</strong><small>머리글의 ▾를 눌러 엑셀처럼 열마다 필터·정렬할 수 있습니다.</small></span></div>
         {(activeCount > 0 || sort) && <button type="button" className="column-filter-reset" onClick={reset}><RotateCcw size={14}/> 필터 초기화{activeCount > 0 ? ` (${activeCount})` : ''}</button>}
       </div>
       <div className="review-status-table-wrap"><table className="review-status-table correction-table">
@@ -91,7 +103,7 @@ export function ReviewStatusPage() {
         </tr></thead>
         <tbody>
           {corrections.map((item) => <tr key={item.id}>{columns.map((column) => <td key={column.key}>{column.render(item)}</td>)}<td><button type="button" className="sheet-view-button" onClick={() => setSheet(item)}><Eye size={13}/> 화면 보기</button></td></tr>)}
-          {corrections.length === 0 && <tr><td className="review-status-empty" colSpan={7}>필터 조건에 맞는 수정 내역이 없습니다.</td></tr>}
+          {corrections.length === 0 && <tr><td className="review-status-empty" colSpan={7}>{monthErrors.length ? '필터 조건에 맞는 수정 내역이 없습니다.' : `${monthLabel(selectedMonth)} 수정 내역이 없습니다.`}</td></tr>}
         </tbody>
       </table></div>
     </section>
