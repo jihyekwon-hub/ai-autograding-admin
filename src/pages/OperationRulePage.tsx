@@ -25,6 +25,8 @@ const initialPeriod: Period = { start: MONTH_START, end: TODAY }
 type ChangedStage = { subject: Subject; stage: string; progresses: number[] }
 
 const rate = (value: number, base: number) => base ? `${(value / base * 100).toFixed(1)}%` : '0.0%'
+// 과목별 배정 비중 그래프의 표시 순서(운영 요청 순서). 과목 목록 자체는 curriculum.subjects 기준.
+const pieSubjects: Subject[] = ['국어', '수학', '영어', '과학'].filter((item): item is Subject => (subjects as readonly string[]).includes(item))
 const assignmentColors: Record<RuleResult, string> = { 자동확정: '#2f5f9e', 검수후확정: '#77a4d8', 채점센터: '#b7c3d1' }
 
 /** 이력에 남길 요약: 변경한 진도번호의 배정 현황 */
@@ -58,12 +60,15 @@ export function OperationRulePage() {
     .filter((item) => item.progresses.length > 0), [draft, ruleSettings])
   const changedCount = changedStages.reduce((sum, item) => sum + item.progresses.length, 0)
 
-  // 과목 전체(모든 단계)의 배정 비중: 저장된 기준 기준
-  const subjectCounts = useMemo(() => subjectAssignmentCounts(ruleSettings, subject), [ruleSettings, subject])
-  const subjectTotal = ruleResults.reduce((sum, result) => sum + subjectCounts[result], 0)
-  const autoEnd = subjectTotal ? subjectCounts.자동확정 / subjectTotal * 100 : 0
-  const reviewEnd = subjectTotal ? (subjectCounts.자동확정 + subjectCounts.검수후확정) / subjectTotal * 100 : 0
-  const pieBackground = `conic-gradient(${assignmentColors.자동확정} 0 ${autoEnd}%, ${assignmentColors.검수후확정} ${autoEnd}% ${reviewEnd}%, ${assignmentColors.채점센터} ${reviewEnd}% 100%)`
+  // 과목별(모든 단계) 배정 비중: 저장된 기준 기준, 네 과목을 한 번에 보여준다.
+  const subjectPies = useMemo(() => pieSubjects.map((item) => {
+    const counts = subjectAssignmentCounts(ruleSettings, item)
+    const total = ruleResults.reduce((sum, result) => sum + counts[result], 0)
+    const autoEnd = total ? counts.자동확정 / total * 100 : 0
+    const reviewEnd = total ? (counts.자동확정 + counts.검수후확정) / total * 100 : 0
+    const background = `conic-gradient(${assignmentColors.자동확정} 0 ${autoEnd}%, ${assignmentColors.검수후확정} ${autoEnd}% ${reviewEnd}%, ${assignmentColors.채점센터} ${reviewEnd}% 100%)`
+    return { subject: item, counts, total, background }
+  }), [ruleSettings])
 
   // 처리결과는 저장된 기준과 조회기간으로 집계한다(편집 중인 기준은 반영하지 않음).
   const results = useMemo(() => progressNumbers.map((progress) => getProgressResult(subject, stage, progress, savedStage[progress], period.start, period.end)), [subject, stage, savedStage, period])
@@ -133,16 +138,22 @@ export function OperationRulePage() {
       <section className="operation-filter-card" aria-label="운영기준 조회 조건">
         <label>과목<select value={subject} onChange={(event) => changeSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></label>
         <label>단계<select value={stage} onChange={(event) => setStage(event.target.value)}>{curriculumStages[subject].map((item) => <option key={item}>{item}</option>)}</select></label>
-        <div className="operation-subject-pie">
-          <div className="operation-subject-pie-chart" style={{ background: pieBackground }} role="img" aria-label={ruleResults.map((result) => `${resultLabels[result]} ${rate(subjectCounts[result], subjectTotal)}`).join(', ')} />
-          <div className="operation-subject-pie-legend">
-            <strong>{subject} 배정 비중 <small>전체 단계 · 진도번호 {number.format(subjectTotal)}개</small></strong>
+        <div className="operation-subject-pies" aria-label="과목별 배정 비중">
+          <div className="operation-subject-pies-head">
+            <strong>과목별 배정 비중</strong>
+            <small>전체 단계 기준 · 클릭하면 해당 과목으로 이동</small>
             <ul>
-              {ruleResults.map((result) => (
-                <li key={result}><i style={{ background: assignmentColors[result] }} /><span>{resultLabels[result]}</span><b>{rate(subjectCounts[result], subjectTotal)}</b><small>{number.format(subjectCounts[result])}개</small></li>
-              ))}
+              {ruleResults.map((result) => <li key={result}><i style={{ background: assignmentColors[result] }} />{resultLabels[result]}</li>)}
             </ul>
           </div>
+          {subjectPies.map((pie) => (
+            <button type="button" key={pie.subject} className={`operation-subject-pie ${pie.subject === subject ? 'active' : ''}`} onClick={() => changeSubject(pie.subject)} aria-label={`${pie.subject} ${ruleResults.map((result) => `${resultLabels[result]} ${rate(pie.counts[result], pie.total)}`).join(', ')}`}>
+              <span className="operation-subject-pie-chart" style={{ background: pie.background }}><b>{pie.subject}</b></span>
+              <span className="operation-subject-pie-values">
+                {ruleResults.map((result) => <span key={result}><i style={{ background: assignmentColors[result] }} />{rate(pie.counts[result], pie.total)}</span>)}
+              </span>
+            </button>
+          ))}
         </div>
       </section>
 
