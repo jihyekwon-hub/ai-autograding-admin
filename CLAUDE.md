@@ -17,7 +17,7 @@ pnpm run lint      # eslint .
 
 사용자 PC는 회사 보안 규정상 Node.js를 설치할 수 없다. Claude Code는 로컬에서 Node/pnpm을 설치·실행하지 않고, 브랜치를 push한 뒤 Vercel Preview 빌드(`tsc -b && vite build`)와 Preview URL 화면으로 검증한다(lint는 로컬에서 실행되지 않음).
 
-운영기준 설정 화면은 처리결과를 자동배정/검수배정/채점배정으로 표기하지만, 데이터 값(`RuleResult`)과 다른 화면은 자동확정/검수후확정/채점센터를 유지한다. 진도번호별 처리결과·수정율 mock은 `data/progressResults.ts`.
+운영기준 설정 화면은 배정을 자동배정/검수배정/채점배정으로 표기하지만(`resultLabels`), 데이터 값(`RuleResult`)과 다른 화면은 자동확정/검수후확정/채점센터를 유지한다. 운영기준은 진도번호별로 선택한 배정 → LP 기준값(이상)이며(정답/오답 구분 없음), 배정을 선택하지 않은 진도번호·LP 구간은 채점센터로 이관된다. 진도번호별 처리결과·오류율 mock은 `data/progressResults.ts`.
 
 ## 기술 스택
 
@@ -34,7 +34,7 @@ src/
   App.tsx                 라우트 정의 (AdminLayout 하위)
   layouts/AdminLayout.tsx 사이드바 메뉴(navigation 배열) + 상단바
   contexts/               전역 상태 — Provider(.tsx)와 store(.ts: createContext + useXxx 훅) 분리
-    AdminDataProvider / adminStore     운영기준(ruleSettings: 과목|단계 → 진도번호 → 처리결과 → 정답/오답 LP 범위), 이력(history, addHistory)
+    AdminDataProvider / adminStore     운영기준(ruleSettings: 과목|단계 → 진도번호 → 배정 → LP 기준값), 이력(history, addHistory)
     ReviewerProvider / reviewerStore   검수교사 목록(reviewers)
   data/                   mock 데이터와 도메인 타입
     curriculum.ts         과목·단계·진도번호(1~200), TODAY, MONTH_START
@@ -83,5 +83,4 @@ src/
 - 검수교사 추가/수정 모달에서 이름 미입력 검증 메시지가 표시되지 않는다(`message`가 범위 모달에서만 렌더링됨).
 - 신규 검수교사 ID(`TCH${reviewers.length + 1}`)가 삭제 후 추가 시 중복될 수 있다.
 - 운영기준 설정 화면의 편집 내용(draft)은 페이지 상태라, 저장하지 않고 다른 메뉴로 이동하면 사라진다(이탈 경고 없음).
-- 운영기준 검증은 처리결과 간 LP 겹침만 막는다. LP 0~100 중 어떤 처리결과에도 속하지 않는 누락 구간은 아직 검사하지 않는다.
 - 운영 정책 미결 사항은 `src/specs/overview.ts`의 `openIssues` 참고.
