@@ -1,7 +1,8 @@
 import { curriculumStages, progressNumbers, subjects, type Subject } from './curriculum'
 
 // 운영기준(Routing Rule) mock 데이터.
-// 과목 · 단계 · 진도번호마다 배정(자동확정/검수후확정/채점센터) 중 하나만 선택하고, 선택한 배정의 LP 기준값을 가진다.
+// 과목 · 단계 · 진도번호마다 배정(자동확정/검수후확정/채점센터) 중 하나만 선택하고, 선택한 배정의 LP 범위를 가진다.
+// LP 범위는 lpMin 초과 ~ lpMax 이하(lpMin < LP ≤ lpMax)로, 경계값이 겹치거나 비지 않게 한다.
 // 배정을 선택하지 않은 진도번호는 채점센터로 이관된다.
 
 export type RuleResult = '자동확정' | '검수후확정' | '채점센터'
@@ -9,11 +10,13 @@ export type RuleResult = '자동확정' | '검수후확정' | '채점센터'
 export const ruleResults: RuleResult[] = ['자동확정', '검수후확정', '채점센터']
 /** 운영기준 설정 화면에서 쓰는 배정 명칭 */
 export const resultLabels: Record<RuleResult, string> = { 자동확정: '자동배정', 검수후확정: '검수배정', 채점센터: '채점배정' }
-/** 배정을 새로 선택할 때의 기본 LP 기준값 */
-export const defaultLp: Record<RuleResult, number> = { 자동확정: 95, 검수후확정: 90, 채점센터: 0 }
+/** 배정을 새로 선택할 때의 기본 LP 범위(초과 ~ 이하) */
+export const defaultLp: Record<RuleResult, LpRange> = { 자동확정: { lpMin: 95, lpMax: 100 }, 검수후확정: { lpMin: 90, lpMax: 100 }, 채점센터: { lpMin: 0, lpMax: 100 } }
 
-/** 한 진도번호의 설정: 선택한 배정 하나와 LP 기준값 */
-export type ProgressSetting = { result: RuleResult; lp: number }
+/** LP 범위: lpMin 초과 ~ lpMax 이하 */
+export type LpRange = { lpMin: number; lpMax: number }
+/** 한 진도번호의 설정: 선택한 배정 하나와 LP 범위 */
+export type ProgressSetting = { result: RuleResult } & LpRange
 /** 한 과목·단계의 설정: 진도번호 → 설정 (없으면 채점센터 이관) */
 export type StageSettings = Record<number, ProgressSetting | undefined>
 /** 전체 설정: `과목|단계` → 단계 설정 */
@@ -25,10 +28,12 @@ export const stageKey = (subject: Subject, stage: string) => `${subject}|${stage
 export const effectiveResult = (setting: ProgressSetting | undefined): RuleResult => setting?.result ?? '채점센터'
 
 export function sameSetting(a: ProgressSetting | undefined, b: ProgressSetting | undefined) {
-  return a?.result === b?.result && a?.lp === b?.lp
+  return a?.result === b?.result && a?.lpMin === b?.lpMin && a?.lpMax === b?.lpMax
 }
 
-export const isValidLp = (value: number) => Number.isInteger(value) && value >= 0 && value <= 100
+const isLpValue = (value: number) => Number.isInteger(value) && value >= 0 && value <= 100
+/** LP 0~100 정수, 초과값 < 이하값 */
+export const isValidRange = (range: LpRange) => isLpValue(range.lpMin) && isLpValue(range.lpMax) && range.lpMin < range.lpMax
 
 /** 진도번호 목록을 "1~30, 45, 181~200"처럼 범위 문자열로 줄인다. */
 export function compressProgress(numbers: number[]) {
@@ -80,9 +85,9 @@ function seedSetting(subject: Subject, stage: string, stageIndex: number, block:
   const auto = Math.min(0.85, Math.max(0.1, autoWeight - stageIndex * 0.05 + (9.5 - block) * 0.02))
   const review = reviewWeight
   const variation = hash(`${subject}|${stage}|${block}|lp`) % 4
-  if (roll < auto) return { result: '자동확정', lp: 94 + variation }
-  if (roll < auto + review) return { result: '검수후확정', lp: 87 + variation }
-  return { result: '채점센터', lp: 0 }
+  if (roll < auto) return { result: '자동확정', lpMin: 93 + variation, lpMax: 100 }
+  if (roll < auto + review) return { result: '검수후확정', lpMin: 86 + variation, lpMax: 100 }
+  return { result: '채점센터', lpMin: 0, lpMax: 100 }
 }
 
 function buildInitialSettings(): RuleSettings {

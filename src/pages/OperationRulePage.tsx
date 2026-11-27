@@ -6,12 +6,13 @@ import {
   compressProgress,
   defaultLp,
   effectiveResult,
-  isValidLp,
+  isValidRange,
   resultLabels,
   ruleResults,
   sameSetting,
   stageKey,
   subjectAssignmentCounts,
+  type LpRange,
   type RuleResult,
   type RuleSettings,
   type StageSettings,
@@ -79,8 +80,8 @@ export function OperationRulePage() {
     setStage(curriculumStages[next][0])
   }
 
-  const updateProgress = (progress: number, result: RuleResult, lp: number) => {
-    setDraft((current) => ({ ...current, [key]: { ...(current[key] ?? {}), [progress]: { result, lp } } }))
+  const updateProgress = (progress: number, result: RuleResult, range: LpRange) => {
+    setDraft((current) => ({ ...current, [key]: { ...(current[key] ?? {}), [progress]: { result, lpMin: range.lpMin, lpMax: range.lpMax } } }))
     setMessage(null)
   }
 
@@ -96,7 +97,7 @@ export function OperationRulePage() {
     changedStages.forEach((item) => {
       item.progresses.forEach((progress) => {
         const setting = draft[stageKey(item.subject, item.stage)]?.[progress]
-        if (setting && !isValidLp(setting.lp)) problems.push(`${item.subject} ${item.stage} 진도 ${progress}: LP는 0~100 정수`)
+        if (setting && !isValidRange(setting)) problems.push(`${item.subject} ${item.stage} 진도 ${progress}: LP는 0~100 정수, 초과값 < 이하값`)
       })
     })
     if (problems.length) {
@@ -141,18 +142,18 @@ export function OperationRulePage() {
         <div className="operation-subject-pies" aria-label="과목별 배정 비중">
           <div className="operation-subject-pies-head">
             <strong>과목별 배정 비중</strong>
-            <small>전체 단계 기준 · 클릭하면 해당 과목으로 이동</small>
+            <small>전체 단계 기준</small>
             <ul>
               {ruleResults.map((result) => <li key={result}><i style={{ background: assignmentColors[result] }} />{resultLabels[result]}</li>)}
             </ul>
           </div>
           {subjectPies.map((pie) => (
-            <button type="button" key={pie.subject} className={`operation-subject-pie ${pie.subject === subject ? 'active' : ''}`} onClick={() => changeSubject(pie.subject)} aria-label={`${pie.subject} ${ruleResults.map((result) => `${resultLabels[result]} ${rate(pie.counts[result], pie.total)}`).join(', ')}`}>
+            <div key={pie.subject} role="img" className={`operation-subject-pie ${pie.subject === subject ? 'active' : ''}`} aria-label={`${pie.subject} ${ruleResults.map((result) => `${resultLabels[result]} ${rate(pie.counts[result], pie.total)}`).join(', ')}`}>
               <span className="operation-subject-pie-chart" style={{ background: pie.background }}><b>{pie.subject}</b></span>
               <span className="operation-subject-pie-values">
                 {ruleResults.map((result) => <span key={result}><i style={{ background: assignmentColors[result] }} />{rate(pie.counts[result], pie.total)}</span>)}
               </span>
-            </button>
+            </div>
           ))}
         </div>
       </section>
@@ -165,7 +166,7 @@ export function OperationRulePage() {
               <tr className="board-title-row">
                 <th colSpan={4} className="assign-part board-title part-first part-last">
                   <strong>배정기준설정</strong>
-                  <small>배정 하나를 선택하고 LP 기준값을 입력합니다. 배정이 없는 진도번호는 채점센터로 이관됩니다.</small>
+                  <small>배정 하나를 선택하고 LP 범위를 입력합니다(왼쪽 값 초과 ~ 오른쪽 값 이하). 배정이 없는 진도번호는 채점센터로 이관됩니다.</small>
                 </th>
                 <th className="board-gap" rowSpan={3} />
                 <th colSpan={5} className="result-part board-title part-first part-last">
@@ -204,17 +205,22 @@ export function OperationRulePage() {
                 const setting = draftStage[progress]
                 const changed = !sameSetting(setting, savedStage[progress])
                 const selectedResult = effectiveResult(setting)
-                const invalid = !!setting && !isValidLp(setting.lp)
+                const invalid = !!setting && !isValidRange(setting)
                 const item = results[index]
                 return (
                   <tr key={progress} className={`${changed ? 'is-changed' : ''} ${invalid ? 'has-error' : ''}`}>
                     <td className="assign-part part-first progress-cell"><b>{progress}</b>{changed && <span className="changed-dot" title="저장 전 변경" />}</td>
                     {ruleResults.map((result) => {
                       const selected = selectedResult === result
+                      const range: LpRange = selected && setting ? setting : defaultLp[result]
                       return (
                         <td key={result} className={`assign-part assign-cell ${selected ? 'is-selected' : ''} ${result === '채점센터' ? 'part-last' : ''}`}>
-                          <input type="radio" name={`assign-${progress}`} checked={selected} aria-label={`진도 ${progress} ${resultLabels[result]}`} onChange={() => updateProgress(progress, result, setting?.result === result ? setting.lp : defaultLp[result])} />
-                          <input className={`assign-lp ${selected && invalid ? 'invalid' : ''}`} type="number" min="0" max="100" disabled={!selected} aria-label={`진도 ${progress} ${resultLabels[result]} LP 기준값`} value={selected ? setting?.lp ?? defaultLp[result] : ''} placeholder="LP" onChange={(event) => updateProgress(progress, result, Number(event.target.value))} />
+                          <input type="radio" name={`assign-${progress}`} checked={selected} aria-label={`진도 ${progress} ${resultLabels[result]}`} onChange={() => updateProgress(progress, result, setting?.result === result ? setting : defaultLp[result])} />
+                          <span className="assign-range">
+                            <input className={`assign-lp ${selected && invalid ? 'invalid' : ''}`} type="number" min="0" max="100" disabled={!selected} aria-label={`진도 ${progress} ${resultLabels[result]} LP 초과값`} value={selected ? range.lpMin : ''} onChange={(event) => updateProgress(progress, result, { ...range, lpMin: Number(event.target.value) })} />
+                            <em>~</em>
+                            <input className={`assign-lp ${selected && invalid ? 'invalid' : ''}`} type="number" min="0" max="100" disabled={!selected} aria-label={`진도 ${progress} ${resultLabels[result]} LP 이하값`} value={selected ? range.lpMax : ''} onChange={(event) => updateProgress(progress, result, { ...range, lpMax: Number(event.target.value) })} />
+                          </span>
                         </td>
                       )
                     })}

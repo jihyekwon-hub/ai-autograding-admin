@@ -17,7 +17,7 @@ pnpm run lint      # eslint .
 
 사용자 PC는 회사 보안 규정상 Node.js를 설치할 수 없다. Claude Code는 로컬에서 Node/pnpm을 설치·실행하지 않고, 브랜치를 push한 뒤 Vercel Preview 빌드(`tsc -b && vite build`)와 Preview URL 화면으로 검증한다(lint는 로컬에서 실행되지 않음).
 
-운영기준 설정 화면은 배정을 자동배정/검수배정/채점배정으로 표기하지만(`resultLabels`), 데이터 값(`RuleResult`)과 다른 화면은 자동확정/검수후확정/채점센터를 유지한다. 운영기준은 진도번호마다 배정 하나 + LP 기준값(`{ result, lp }`, 정답/오답 구분 없음)이며, 진도번호의 제출 답안은 전부 그 배정으로 집계된다(배정이 없으면 채점센터). LP 기준값의 실제 적용 방식은 미결. 샘플은 모든 과목·단계·진도번호에 배정 하나가 들어 있다. 진도번호별 처리결과·오류율 mock은 `data/progressResults.ts`.
+운영기준 설정 화면은 배정을 자동배정/검수배정/채점배정으로 표기하지만(`resultLabels`), 데이터 값(`RuleResult`)과 다른 화면은 자동확정/검수후확정/채점센터를 유지한다. 운영기준은 진도번호마다 배정 하나 + LP 범위(`{ result, lpMin, lpMax }` = lpMin 초과 ~ lpMax 이하, 정답/오답 구분 없음)이며, 진도번호의 제출 답안은 전부 그 배정으로 집계된다(배정이 없으면 채점센터). LP 범위 밖 답안의 처리 방식은 미결. 샘플은 모든 과목·단계·진도번호에 배정 하나가 들어 있다. 진도번호별 처리결과·오류율 mock은 `data/progressResults.ts`.
 
 ## 기술 스택
 
@@ -34,7 +34,7 @@ src/
   App.tsx                 라우트 정의 (AdminLayout 하위)
   layouts/AdminLayout.tsx 사이드바 메뉴(navigation 배열) + 상단바
   contexts/               전역 상태 — Provider(.tsx)와 store(.ts: createContext + useXxx 훅) 분리
-    AdminDataProvider / adminStore     운영기준(ruleSettings: 과목|단계 → 진도번호 → { 배정, LP 기준값 }), 이력(history, addHistory)
+    AdminDataProvider / adminStore     운영기준(ruleSettings: 과목|단계 → 진도번호 → { 배정, LP 범위 }), 이력(history, addHistory)
     ReviewerProvider / reviewerStore   검수교사 목록(reviewers)
   data/                   mock 데이터와 도메인 타입
     curriculum.ts         과목·단계·진도번호(1~200), TODAY, MONTH_START
