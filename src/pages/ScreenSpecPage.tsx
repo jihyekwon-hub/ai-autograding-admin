@@ -5,7 +5,6 @@ import { ReviewerProvider } from '../contexts/ReviewerProvider'
 import { DashboardPage } from './DashboardPage'
 import { HistoryPage } from './HistoryPage'
 import { OperationRulePage } from './OperationRulePage'
-import { PerformancePage } from './PerformancePage'
 import { ReviewerManagementPage } from './ReviewerManagementPage'
 import { ReviewStatusPage } from './ReviewStatusPage'
 import {
@@ -33,7 +32,6 @@ type MarkerPosition = { left: number; top: number; width: number; height: number
 
 const previewComponents: Record<ScreenKey, ComponentType> = {
   dashboard: DashboardPage,
-  performance: PerformancePage,
   standards: OperationRulePage,
   reviewers: ReviewerManagementPage,
   'review-status': ReviewStatusPage,
