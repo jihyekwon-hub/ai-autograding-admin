@@ -1,8 +1,9 @@
 import { TODAY } from './curriculum'
-import { hasResult, type ProgressSetting } from './operationRules'
+import { effectiveResult, type ProgressSetting } from './operationRules'
 
 // 진도번호별 처리결과 mock 데이터. 실제 서비스에서는 처리결과 집계 API가 실시간 값을 내려준다.
 // 처리결과 = 회원에게 발송까지 모든 작업이 끝난(완료) 장 수.
+// 진도번호는 배정 하나만 가지므로, 제출된 답안지는 모두 그 배정의 처리결과가 된다.
 // 오류 = 검수후확정 장 중 검수교사가 AI 판정을 수정한 뒤 확정한 장 수.
 
 export type ProgressResult = { total: number; auto: number; review: number; center: number; corrected: number }
@@ -25,21 +26,8 @@ function daysBetween(start: string, end: string) {
   return days
 }
 
-/** LP가 기준값 이상인 답안지 비율(mock): 기준값이 낮을수록 더 많이 포함된다. */
-function shareAtOrAbove(lp: number) {
-  if (lp <= 0) return 1
-  return Math.min(0.97, Math.max(0.03, 0.5 + (95 - lp) * 0.06))
-}
-
-/** 저장된 설정에 따라 자동확정 · 검수후확정 비율을 계산하고, 나머지는 채점센터로 본다. */
-function routeShares(setting: ProgressSetting | undefined) {
-  const autoShare = hasResult(setting, '자동확정') ? shareAtOrAbove(setting?.자동확정 ?? 100) : 0
-  const reviewShare = hasResult(setting, '검수후확정') ? Math.max(0, shareAtOrAbove(setting?.검수후확정 ?? 100) - autoShare) : 0
-  return { autoShare, reviewShare }
-}
-
 export function getProgressResult(subject: string, stage: string, progress: number, setting: ProgressSetting | undefined, start: string, end: string): ProgressResult {
-  const { autoShare, reviewShare } = routeShares(setting)
+  const route = effectiveResult(setting)
   const result: ProgressResult = { total: 0, auto: 0, review: 0, center: 0, corrected: 0 }
   let corrected = 0
   daysBetween(start, end).forEach((day) => {
@@ -47,13 +35,13 @@ export function getProgressResult(subject: string, stage: string, progress: numb
     const weekday = new Date(`${day}T00:00:00Z`).getUTCDay()
     const weekdayFactor = weekday === 0 ? 0.35 : weekday === 6 ? 0.6 : 1
     const total = Math.round((6 + (seed % 15)) * weekdayFactor)
-    const auto = Math.round(total * autoShare)
-    const review = Math.min(total - auto, Math.round(total * reviewShare))
     result.total += total
-    result.auto += auto
-    result.review += review
-    result.center += total - auto - review
-    corrected += review * (0.02 + ((seed >>> 8) % 6) / 100)
+    if (route === '자동확정') result.auto += total
+    if (route === '검수후확정') {
+      result.review += total
+      corrected += total * (0.02 + ((seed >>> 8) % 6) / 100)
+    }
+    if (route === '채점센터') result.center += total
   })
   result.corrected = Math.round(corrected)
   return result
