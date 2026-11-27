@@ -8,7 +8,7 @@ import { effectiveResult, type ProgressSetting } from './operationRules'
 // 오류 = 검수후확정 장 중 검수교사가 AI 판정을 수정한 뒤 확정한 장 수.
 
 /** 오류율 관리 기준(%): 이 값을 넘으면 주의 대상 */
-export const ERROR_RATE_THRESHOLD = 5
+export const ERROR_RATE_THRESHOLD = 3
 
 export type ProgressResult = { total: number; auto: number; review: number; center: number; corrected: number }
 
