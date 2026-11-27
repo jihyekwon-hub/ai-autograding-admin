@@ -262,7 +262,7 @@ a { color: inherit; text-decoration: none; }
 
 /* 운영기준 목록: 좌(배정기준설정) · 우(처리결과조회) 표가 같은 진도번호 행으로 이어진다 */
 .rule-board { overflow-x: auto; }
-.rule-board-inner { min-width: 1180px; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); column-gap: 14px; padding: 12px 14px 0; }
+.rule-board-inner { min-width: 1220px; display: grid; grid-template-columns: minmax(640px, 1.1fr) minmax(566px, 1fr); column-gap: 14px; padding: 12px 14px 0; }
 .rule-board-head { height: 74px; display: grid; align-content: center; gap: 5px; padding: 0 12px; border: 1px solid #dfe5ed; border-bottom: 0; border-radius: 8px 8px 0 0; }
 .rule-board-head > strong { color: #203149; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); }
 .rule-board-head > small { color: #7b889a; font-size: var(--font-size-xs); }
@@ -274,7 +274,7 @@ a { color: inherit; text-decoration: none; }
 .rule-period button { height: 30px; display: inline-flex; align-items: center; gap: 4px; padding: 0 11px; border: 0; border-radius: 5px; background: #183354; color: #fff; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); cursor: pointer; }
 .rule-period-note { grid-column: 1 / -1; color: #6c788a; font-size: var(--font-size-xs); font-style: normal; text-align: right; }
 .rule-period-note.error { color: #b04545; font-weight: var(--font-weight-semibold); }
-.rule-board-scroll { grid-column: 1 / -1; max-height: 600px; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); column-gap: 14px; align-items: start; overflow-y: auto; }
+.rule-board-scroll { grid-column: 1 / -1; max-height: 600px; display: grid; grid-template-columns: minmax(640px, 1.1fr) minmax(566px, 1fr); column-gap: 14px; align-items: start; overflow-y: auto; }
 .rule-assign-table, .rule-result-table { width: 100%; border: 1px solid #dfe5ed; border-collapse: separate; border-spacing: 0; }
 .rule-assign-table th, .rule-result-table th { position: sticky; z-index: 1; height: 32px; padding: 0 10px; border-bottom: 1px solid #dfe5ed; background: #f3f6f9; color: #5a687c; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); text-align: center; white-space: nowrap; }
 .rule-assign-table thead tr:first-child th, .rule-result-table thead tr:first-child th { top: 0; }
@@ -288,7 +288,7 @@ a { color: inherit; text-decoration: none; }
 .rule-assign-table td b, .rule-result-table td b { color: #2a3a50; font-size: var(--font-size-base); }
 .rule-assign-table tr.is-changed td { background: #fffaf0; }
 .rule-assign-table tr.has-error td { background: #fdf2f2; }
-.assign-cell { min-width: 170px; }
+.assign-cell { min-width: 150px; }
 .assign-cell > * { vertical-align: middle; }
 .assign-check { display: inline-flex; margin-right: 6px; }
 .assign-check input { width: 16px; height: 16px; accent-color: #2d639f; cursor: pointer; }
