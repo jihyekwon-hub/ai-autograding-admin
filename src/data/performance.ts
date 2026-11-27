@@ -10,6 +10,8 @@ export type PerformanceRecord = {
   autoConfirmed: number
   reviewConfirmed: number
   gradingCenter: number
+  /** 검수후확정 중 검수교사가 AI 판정을 수정한 장 수 */
+  corrected: number
 }
 
 export const subjectStages = curriculumStages
@@ -48,6 +50,10 @@ function createPerformanceData(): PerformanceRecord[] {
         const autoConfirmed = Math.round(total * autoRate)
         const reviewConfirmed = Math.round(total * reviewRate)
         const gradingCenter = Math.round(total * centerRate)
+        // 오류율(예시): 국어가 가장 높고 수학이 가장 낮으며, 달마다 조금씩 낮아진다.
+        const errorBase = ({ 국어: 0.056, 과학: 0.047, 영어: 0.044, 수학: 0.037 } as Record<string, number>)[subject] ?? 0.045
+        const errorRate = Math.max(0.01, errorBase - rampMonths * 0.0012 + (((dayIndex + stageIndex * 3) % 7) - 3) * 0.002)
+        const corrected = Math.round(reviewConfirmed * errorRate)
 
         records.push({
           date: formatDate(date),
@@ -57,6 +63,7 @@ function createPerformanceData(): PerformanceRecord[] {
           autoConfirmed,
           reviewConfirmed,
           gradingCenter,
+          corrected,
         })
       })
     })

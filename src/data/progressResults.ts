@@ -7,6 +7,9 @@ import { effectiveResult, type ProgressSetting } from './operationRules'
 // 진도번호는 배정 하나만 가지므로, 제출된 답안은 모두 그 배정의 처리결과가 된다(배정이 없으면 채점센터).
 // 오류 = 검수후확정 장 중 검수교사가 AI 판정을 수정한 뒤 확정한 장 수.
 
+/** 오류율 관리 기준(%): 이 값을 넘으면 주의 대상 */
+export const ERROR_RATE_THRESHOLD = 5
+
 export type ProgressResult = { total: number; auto: number; review: number; center: number; corrected: number }
 
 function hash(text: string) {
