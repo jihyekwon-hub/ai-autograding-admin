@@ -1,7 +1,7 @@
 import type { ScreenMetadata, ScreenSpecification } from './types'
 
 export const screenMetadata: ScreenMetadata[] = [
-  { key: 'dashboard', order: 1, name: '대시보드', screenId: 'ADM-DASH-001', url: '/dashboard', purpose: 'AI 자동채점 처리 물량을 월 단위로 전체·AI 자동채점·채점센터, 자동확정·검수후확정 구성으로 요약 조회', user: '운영관리자', crud: 'Read', relatedScreens: ['실적관리'] },
+  { key: 'dashboard', order: 1, name: '대시보드', screenId: 'ADM-DASH-001', url: '/dashboard', purpose: 'AI 자동채점 처리 물량을 월 단위로 전체·AI 자동채점·채점센터, 자동확정·검수후확정 구성으로 요약 조회', user: '운영관리자', crud: 'Read', relatedScreens: [] },
   { key: 'performance', order: 2, name: '실적관리', screenId: 'ADM-PERF-001', url: '/performance', purpose: '전체 제출 대비 AI 자동채점 적용범위와 처리 결과를 기간별 분석', user: '운영관리자', crud: 'Read / Export', relatedScreens: ['대시보드'] },
   { key: 'standards', order: 3, name: '운영기준 설정', screenId: 'ADM-STD-001', url: '/standards', purpose: '과목·단계의 진도번호별 배정(자동배정·검수배정·채점배정 중 하나)과 LP 범위를 설정하고, 같은 행에서 기간별 처리결과·오류율과 과목 배정 비중을 조회', user: '운영관리자', crud: 'Read / Update', relatedScreens: ['이력관리'] },
   { key: 'reviewers', order: 4, name: '검수교사 관리', screenId: 'ADM-REV-001', url: '/reviewers', purpose: '검수교사 인력정보와 복수 검수 대상 범위 관리', user: '운영관리자', crud: 'Read / Create / Update / Delete', relatedScreens: ['수정내역', '이력관리'] },

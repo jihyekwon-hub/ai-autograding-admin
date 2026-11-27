@@ -37,9 +37,10 @@ function createPerformanceData(): PerformanceRecord[] {
       subjectStages[subject].forEach((stage, stageIndex) => {
         const wave = 1 + Math.sin((dayIndex + subjectIndex * 3 + stageIndex) / 9) * 0.12
         const total = Math.round((285 + (dayIndex % 19) * 6) * subjectScale[subject] * weekdayFactor * wave)
-        const autoRate = 0.39 + ((dayIndex + stageIndex) % 8) * 0.006
-        const reviewRate = 0.265 + ((dayIndex + subjectIndex) % 6) * 0.005
-        const centerRate = 0.105 + ((dayIndex + stageIndex * 2) % 5) * 0.006
+        // 초기 운영 단계 예시: AI 자동채점(자동확정+검수후확정)보다 채점센터 이관이 많다.
+        const autoRate = 0.17 + ((dayIndex + stageIndex) % 8) * 0.005
+        const reviewRate = 0.12 + ((dayIndex + subjectIndex) % 6) * 0.004
+        const centerRate = 0.56 + ((dayIndex + stageIndex * 2) % 5) * 0.006
         const autoConfirmed = Math.round(total * autoRate)
         const reviewConfirmed = Math.round(total * reviewRate)
         const gradingCenter = Math.round(total * centerRate)
