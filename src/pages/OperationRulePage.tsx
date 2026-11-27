@@ -165,7 +165,7 @@ export function OperationRulePage() {
               <tr className="board-title-row">
                 <th colSpan={4} className="assign-part board-title part-first part-last">
                   <strong>배정기준설정</strong>
-                  <small>배정 하나를 선택하고 LP 기준값을 입력합니다. 기준값 미만 답안과 배정이 없는 진도번호는 채점센터로 이관됩니다.</small>
+                  <small>배정 하나를 선택하고 LP 기준값을 입력합니다. 배정이 없는 진도번호는 채점센터로 이관됩니다.</small>
                 </th>
                 <th className="board-gap" rowSpan={3} />
                 <th colSpan={5} className="result-part board-title part-first part-last">
