@@ -3,7 +3,9 @@ import { effectiveResult, type ProgressSetting } from './operationRules'
 
 // 진도번호별 처리결과 mock 데이터. 실제 서비스에서는 처리결과 집계 API가 실시간 값을 내려준다.
 // 처리결과 = 회원에게 발송까지 모든 작업이 끝난(완료) 장 수.
-// 진도번호는 배정 하나만 가지므로, 제출된 답안지는 모두 그 배정의 처리결과가 된다.
+// 전체 제출 = 해당 진도번호로 제출된 스마트구몬 답안 전체량.
+// 선택한 배정(자동·검수)은 LP 기준값 이상인 답안만 처리하고, 기준 미만은 채점센터로 이관된다.
+// 채점배정이거나 배정이 없으면 전량 채점센터.
 // 오류 = 검수후확정 장 중 검수교사가 AI 판정을 수정한 뒤 확정한 장 수.
 
 export type ProgressResult = { total: number; auto: number; review: number; center: number; corrected: number }
@@ -26,6 +28,13 @@ function daysBetween(start: string, end: string) {
   return days
 }
 
+/** LP가 기준값 이상인 답안 비율(mock). 기준값이 낮을수록 더 많이 포함되고, 일자별로 조금씩 흔들린다. */
+function shareAtOrAbove(lp: number, seed: number) {
+  const base = 0.62 + (95 - lp) * 0.045
+  const noise = ((seed >>> 4) % 17 - 8) / 100
+  return Math.min(0.9, Math.max(0.2, base + noise))
+}
+
 export function getProgressResult(subject: string, stage: string, progress: number, setting: ProgressSetting | undefined, start: string, end: string): ProgressResult {
   const route = effectiveResult(setting)
   const result: ProgressResult = { total: 0, auto: 0, review: 0, center: 0, corrected: 0 }
@@ -35,13 +44,14 @@ export function getProgressResult(subject: string, stage: string, progress: numb
     const weekday = new Date(`${day}T00:00:00Z`).getUTCDay()
     const weekdayFactor = weekday === 0 ? 0.35 : weekday === 6 ? 0.6 : 1
     const total = Math.round((6 + (seed % 15)) * weekdayFactor)
+    const routed = route === '채점센터' || !setting ? 0 : Math.round(total * shareAtOrAbove(setting.lp, seed))
     result.total += total
-    if (route === '자동확정') result.auto += total
+    if (route === '자동확정') result.auto += routed
     if (route === '검수후확정') {
-      result.review += total
-      corrected += total * (0.02 + ((seed >>> 8) % 6) / 100)
+      result.review += routed
+      corrected += routed * (0.02 + ((seed >>> 8) % 6) / 100)
     }
-    if (route === '채점센터') result.center += total
+    result.center += total - routed
   })
   result.corrected = Math.round(corrected)
   return result
