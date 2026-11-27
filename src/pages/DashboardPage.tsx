@@ -44,7 +44,6 @@ export function DashboardPage() {
   return <div className="page dashboard-page">
     <div className="dashboard-heading"><div><p>AI 자동채점 관리</p><h1>대시보드</h1><span>자동채점 운영 현황과 주요 지표를 월 단위로 확인합니다.</span></div></div>
     <div className="dashboard-section-head">
-      <h2 className="dashboard-section-label">주요 운영 지표</h2>
       <label className="dashboard-month-select">기준월<select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>{monthOptions.map((item) => <option key={item} value={item}>{monthLabel(item)}</option>)}</select></label>
     </div>
     <section className="dashboard-split">
