@@ -73,12 +73,13 @@ function hash(text: string) {
   return value >>> 0
 }
 
-/** 과목별 기본 비중(자동배정, 검수배정). 나머지는 채점배정. */
+/** 과목별 기본 비중(자동배정, 검수배정). 나머지는 채점배정.
+ *  초기 운영 예시: 처리량 기준으로 채점센터(약 54%)가 AI 자동채점보다 많고, 수학이 AI 비중이 가장 높고 국어가 가장 낮다. */
 const subjectWeights: Record<Subject, [number, number]> = {
-  수학: [0.55, 0.28],
-  영어: [0.45, 0.3],
-  국어: [0.3, 0.3],
-  과학: [0.38, 0.27],
+  수학: [0.42, 0.22],
+  영어: [0.36, 0.22],
+  국어: [0.22, 0.2],
+  과학: [0.3, 0.18],
 }
 
 function seedSetting(subject: Subject, stage: string, stageIndex: number, block: number): ProgressSetting {
