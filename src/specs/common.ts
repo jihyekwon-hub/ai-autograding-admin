@@ -2,7 +2,7 @@ import type { ScreenMetadata, ScreenSpecification } from './types'
 
 export const screenMetadata: ScreenMetadata[] = [
   { key: 'dashboard', order: 1, name: '대시보드', screenId: 'ADM-DASH-001', url: '/dashboard', purpose: 'AI 자동채점 처리 물량을 월 단위로 전체·AI 자동채점·채점센터, 자동확정·검수후확정 구성으로 요약 조회', user: '운영관리자', crud: 'Read', relatedScreens: [] },
-  { key: 'standards', order: 2, name: '배정기준설정', screenId: 'ADM-STD-001', url: '/standards', purpose: '과목·단계의 진도번호별 배정(자동배정·검수배정·채점배정 중 하나)과 LP 범위를 설정하고, 같은 행에서 기간별 처리결과·오류율과 과목 배정 비중을 조회하며, 배정 필터와 엑셀 다운로드를 제공', user: '운영관리자', crud: 'Read / Update', relatedScreens: [] },
+  { key: 'standards', order: 2, name: '기준설정', screenId: 'ADM-STD-001', url: '/standards', purpose: '과목·단계의 진도번호별 배정(자동배정·검수배정·채점배정 중 하나)과 LP 범위를 설정하고, 같은 행에서 기간별 처리결과·오류율과 과목 배정 비중을 조회하며, 배정 필터와 엑셀 다운로드를 제공', user: '운영관리자', crud: 'Read / Update', relatedScreens: [] },
   { key: 'review-status', order: 3, name: '수정내역', screenId: 'ADM-STAT-001', url: '/review-status', purpose: '검수교사가 AI 판정을 수정한 내역과 검수 완료 화면 조회', user: '운영관리자', crud: 'Read', relatedScreens: [] },
 ]
 

@@ -14,7 +14,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 const navigation = [
   { to: '/dashboard', label: '대시보드', icon: LayoutDashboard },
-  { to: '/standards', label: '배정기준설정', icon: SlidersHorizontal },
+  { to: '/standards', label: '기준설정', icon: SlidersHorizontal },
   { to: '/review-status', label: '수정내역', icon: ClipboardCheck },
 ]
 

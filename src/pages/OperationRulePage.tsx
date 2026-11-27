@@ -176,7 +176,7 @@ export function OperationRulePage() {
 
   return (
     <div className="page operation-rule-page">
-      <div className="operation-heading"><div><p>AI 자동채점 관리</p><h1>배정기준설정</h1><span>과목·단계를 선택하면 진도번호별 배정기준을 설정하고 처리결과를 함께 확인할 수 있습니다.</span></div></div>
+      <div className="operation-heading"><div><p>AI 자동채점 관리</p><h1>기준설정</h1><span>과목·단계를 선택하면 진도번호별 배정기준을 설정하고 처리결과를 함께 확인할 수 있습니다.</span></div></div>
 
       <section className="operation-filter-card" aria-label="운영기준 조회 조건">
         <label>과목<select value={subject} onChange={(event) => changeSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></label>
