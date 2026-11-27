@@ -56,10 +56,10 @@ src/
 
 ## 반드시 지킬 규칙
 
-1. **화면설계서와 DOM이 연결되어 있다.** `src/specs/*Spec.ts`의 각 항목은 `selector`(예: `.dashboard-kpi-five .kpi-card:nth-child(1)`)로 실제 페이지 요소를 가리키고, ScreenSpecPage가 이를 `querySelector`로 찾아 마커를 그린다. 페이지의 className·요소 순서·구조를 바꾸면 해당 spec의 selector를 함께 갱신하고, 기능·규칙이 바뀌면 spec 내용(businessRules, validation 등)도 갱신한다.
+1. **화면설계서와 DOM이 연결되어 있다.** `src/specs/*Spec.ts`의 각 항목은 `selector`(예: `.dashboard-split-panel:nth-child(1) .kpi-card:nth-child(1)`)로 실제 페이지 요소를 가리키고, ScreenSpecPage가 이를 `querySelector`로 찾아 마커를 그린다. 페이지의 className·요소 순서·구조를 바꾸면 해당 spec의 selector를 함께 갱신하고, 기능·규칙이 바뀌면 spec 내용(businessRules, validation 등)도 갱신한다.
 2. 새 화면을 추가하면 `App.tsx` 라우트, `AdminLayout`의 `navigation`, `specs/common.ts`의 `screenMetadata`, `specs/index.ts`, `ScreenSpecPage`의 `previewComponents`, `specs/types.ts`의 `ScreenKey`를 모두 맞춘다.
 3. 과목·단계·진도번호 목록은 `data/curriculum.ts`만 기준으로 사용한다(하드코딩 금지).
-4. 기준일은 `TODAY`/`MONTH_START` 상수를 사용한다. 기존 코드에 남아 있는 하드코딩 날짜(`'2026-11-16 14:30'`, 대시보드 날짜 문구)는 손댈 때 상수로 정리한다.
+4. 기준일은 `TODAY`/`MONTH_START` 상수를 사용한다. 기존 코드에 남아 있는 하드코딩 날짜(`'2026-11-16 14:30'` 등)는 손댈 때 상수로 정리한다. 대시보드는 월 단위(MONTH_START~TODAY 누적)로 집계한다.
 5. CSS는 단일 전역 파일이므로 페이지 접두어 클래스(`dashboard-*`, `operation-*`, `reviewer-*`, `review-status-*`, `history-*`, `performance-*`, `screen-spec-*`)를 사용하고, 공용 클래스 수정 시 다른 페이지 영향을 확인한다. 글자 크기·굵기는 토큰 변수를 사용한다.
 6. 반응형(모바일 사이드바 포함)을 깨뜨리지 않는다.
 
