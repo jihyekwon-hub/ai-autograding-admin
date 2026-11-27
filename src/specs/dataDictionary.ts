@@ -23,7 +23,7 @@ export const referenceEntities: ReferenceEntity[] = [
   { name: 'SUBMISSION', description: '회원 학습지 제출 Reference Entity', fields: ['submissionId', 'memberId', 'subject', 'level', 'progressNo', 'submittedAt'] },
   { name: 'AI_GRADING_RESULT', description: 'AI 문항별 채점 결과 Reference Entity', fields: ['submissionId', 'questionNo', 'aiResult', 'lp', 'recognizedValue'] },
   { name: 'ROUTING_RESULT', description: '운영기준 적용 결과 Reference Entity', fields: ['submissionId', 'routingStatus', 'appliedRuleId', 'routedAt'] },
-  { name: 'OPERATING_RULE', description: '과목·단계·진도번호별로 배정(자동확정·검수후확정·채점센터) 하나와 LP 기준값을 저장하는 분기 기준 Reference Entity. 정답/오답 구분이 없다.', fields: ['subject', 'level', 'progressNo', 'routingResult', 'lp', 'updatedAt', 'updatedBy'] },
+  { name: 'OPERATING_RULE', description: '과목·단계·진도번호별로 배정(자동확정·검수후확정·채점센터) 하나와 LP 범위(lpMin 초과 ~ lpMax 이하)를 저장하는 분기 기준 Reference Entity. 정답/오답 구분이 없다.', fields: ['subject', 'level', 'progressNo', 'routingResult', 'lpMin(초과)', 'lpMax(이하)', 'updatedAt', 'updatedBy'] },
   { name: 'REVIEWER', description: '검수교사 Master Reference Entity', fields: ['reviewerId', 'reviewerName', 'workingHours', 'status'] },
   { name: 'REVIEW_ASSIGNMENT', description: '검수교사별 복수 담당 범위와 물량 Reference Entity', fields: ['assignmentId', 'reviewerId', 'subject', 'level', 'progressStart', 'progressEnd', 'allocatedSheets'] },
   { name: 'REVIEW_RESULT', description: '문항별 검수 확정 결과 Reference Entity', fields: ['submissionId', 'questionNo', 'reviewerId', 'aiResult', 'finalResult', 'modified', 'confirmedAt'] },

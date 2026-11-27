@@ -256,13 +256,13 @@ a { color: inherit; text-decoration: none; }
 .operation-message.info { color: #3d628c; }
 
 /* 운영기준 설정: 조회 조건(과목·단계) */
-.operation-filter-card { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px 18px; margin-bottom: 13px; padding: 14px 16px; border: 1px solid #dce3ec; border-radius: 9px; background: #fff; box-shadow: 0 2px 9px rgba(20,39,68,.035); }
+.operation-filter-card { display: flex; align-items: center; flex-wrap: wrap; gap: 14px 18px; margin-bottom: 13px; padding: 14px 16px; border: 1px solid #dce3ec; border-radius: 9px; background: #fff; box-shadow: 0 2px 9px rgba(20,39,68,.035); }
 .operation-filter-card > label { display: grid; gap: 6px; color: #5b687c; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
 .operation-filter-card select { height: 38px; min-width: 130px; padding: 0 10px; border: 1px solid #d5dde8; border-radius: 6px; outline: none; background: #fff; color: #2b3a4f; font-size: var(--font-size-base); }
 
 /* 운영기준 목록: 하나의 표 안에서 좌(배정기준설정) · 우(처리결과조회)를 간격 열로 나눠 행을 맞춘다 */
 .rule-board { max-height: 640px; overflow: auto; margin: 12px 14px 0; }
-.rule-board-table { width: 100%; min-width: 1180px; border-collapse: separate; border-spacing: 0; }
+.rule-board-table { width: 100%; min-width: 1280px; border-collapse: separate; border-spacing: 0; }
 .rule-board-table th { position: sticky; z-index: 2; padding: 0 10px; background: #f3f6f9; color: #5a687c; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); text-align: center; white-space: nowrap; }
 .rule-board-table .board-title-row th { top: 0; height: 66px; border-top: 1px solid #dfe5ed; text-align: left; vertical-align: middle; }
 .rule-board-table .board-group-row th { top: 66px; height: 32px; border-top: 1px solid #dfe5ed; }
@@ -293,23 +293,24 @@ a { color: inherit; text-decoration: none; }
 .rule-board-table tr.is-changed td.assign-part { background: #fffaf0; }
 .rule-board-table tr.has-error td.assign-part { background: #fdf2f2; }
 .rule-board-table tbody tr:hover td:not(.board-gap) { background: #f7faff; }
-.assign-cell { min-width: 120px; text-align: center; }
+.assign-cell { min-width: 176px; text-align: center; }
+.assign-range { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+.assign-range em { color: #8592a5; font-size: var(--font-size-xs); font-style: normal; }
 .assign-cell > input { vertical-align: middle; }
 .assign-cell input[type="radio"] { width: 16px; height: 16px; margin: 0 8px 0 0; accent-color: #2d639f; cursor: pointer; }
-.assign-lp { width: 56px; height: 30px; padding: 0 6px; border: 1px solid #d5dde8; border-radius: 5px; background: #fff; color: #2b3a4f; font: inherit; font-size: var(--font-size-sm); text-align: right; }
+.assign-lp { width: 50px; height: 30px; padding: 0 6px; border: 1px solid #d5dde8; border-radius: 5px; background: #fff; color: #2b3a4f; font: inherit; font-size: var(--font-size-sm); text-align: right; }
 .assign-lp:disabled { border-color: #e7ebf0; background: #f5f7fa; }
 .assign-lp.invalid { border-color: #d06a6a; background: #fff6f6; }
 .assign-cell.is-selected .assign-lp { border-color: #9db8d8; }
 /* 과목별 배정 비중 파이: 네 과목을 한 번에 */
-.operation-subject-pies { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: auto; padding-left: 18px; border-left: 1px solid #e3e8ef; }
+.operation-subject-pies { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: 10px; padding-left: 22px; border-left: 1px solid #e3e8ef; }
 .operation-subject-pies-head { display: grid; gap: 4px; margin-right: 4px; }
 .operation-subject-pies-head strong { color: #203149; font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); }
 .operation-subject-pies-head small { color: #8592a5; font-size: var(--font-size-xs); }
 .operation-subject-pies-head ul { display: grid; gap: 3px; margin: 2px 0 0; padding: 0; list-style: none; }
 .operation-subject-pies-head li { display: flex; align-items: center; gap: 5px; color: #536176; font-size: var(--font-size-xs); }
 .operation-subject-pies-head li i, .operation-subject-pie-values i { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 2px; }
-.operation-subject-pie { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border: 1px solid transparent; border-radius: 10px; background: transparent; cursor: pointer; }
-.operation-subject-pie:hover { background: #f5f8fc; }
+.operation-subject-pie { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border: 1px solid transparent; border-radius: 10px; background: transparent; }
 .operation-subject-pie.active { border-color: #c9d8ea; background: #f1f6fc; }
 .operation-subject-pie-chart { position: relative; width: 64px; height: 64px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; }
 .operation-subject-pie-chart::after { content: ''; position: absolute; inset: 13px; border-radius: 50%; background: #fff; }
